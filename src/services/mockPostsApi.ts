@@ -1,4 +1,5 @@
 import type { CreatePostInput, Platform, Post } from "@/features/posts/postsTypes"
+import { characterLimitMessage, platformsOverLimit } from "@/features/posts/postValidation"
 import { supportedPlatforms } from "@/lib/platform"
 import { mockPosts } from "@/services/mockData"
 import { delay } from "@/services/delay"
@@ -63,6 +64,11 @@ function assertCreateInput(input: CreatePostInput) {
     throw new Error("The scheduled time must be in the future.")
   }
 
+  const overLimit = platformsOverLimit(input.content, platforms)
+  if (overLimit.length > 0) {
+    throw new Error(characterLimitMessage(overLimit))
+  }
+
   return platforms
 }
 
@@ -101,7 +107,7 @@ export const mockPostsApi = {
     const posts = readPersistedPosts()
     const created: Post = {
       id: createId(),
-      content: input.content.trim(),
+      content: input.content,
       platforms,
       scheduledAt: input.scheduledAt,
       status: "scheduled",

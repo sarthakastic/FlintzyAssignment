@@ -1,5 +1,6 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Plus } from "lucide-react"
+import { Link, useLocation } from "react-router"
 import { useAppDispatch, useAppSelector } from "@/app/hooks"
 import { Button } from "@/components/ui/button"
 import { DateGroup } from "@/components/queue/DateGroup"
@@ -24,10 +25,13 @@ import { groupPostsByLocalDay } from "@/features/posts/postsUtils"
 import { QueueToolbar } from "@/features/queue/QueueToolbar"
 import { useQueueFilters } from "@/features/queue/useQueueFilters"
 
-const composerReason = "The post composer will be added in a later milestone."
-
 export function QueuePage() {
   const dispatch = useAppDispatch()
+  const location = useLocation()
+  const [hideScheduledNotice, setHideScheduledNotice] = useState(false)
+  const postScheduled =
+    !hideScheduledNotice &&
+    Boolean((location.state as { postScheduled?: boolean } | null)?.postScheduled)
   const posts = useAppSelector(selectAllPosts)
   const loading = useAppSelector(selectPostsLoading)
   const initialized = useAppSelector(selectPostsInitialized)
@@ -65,19 +69,33 @@ export function QueuePage() {
                 Here’s your content queue. Stay consistent, keep growing.
               </p>
             </div>
-            <span title={composerReason} className="shrink-0">
-              <Button
-                type="button"
-                disabled
-                aria-label={`Create Post. ${composerReason}`}
-                className="h-11 rounded-full bg-primary px-4 text-primary-foreground shadow-[0_10px_20px_-12px_rgba(124,58,237,0.9)] hover:bg-[#6d28d9] disabled:opacity-100"
-              >
+            <Button
+              asChild
+              className="h-11 shrink-0 rounded-full bg-primary px-4 text-primary-foreground shadow-[0_10px_20px_-12px_rgba(124,58,237,0.9)] hover:bg-[#6d28d9]"
+            >
+              <Link to="/compose">
                 <Plus data-icon="inline-start" aria-hidden="true" />
                 Create Post
-              </Button>
-            </span>
+              </Link>
+            </Button>
           </div>
         </div>
+
+        {postScheduled ? (
+          <div
+            role="status"
+            className="soft-card mt-6 flex items-center justify-between gap-3 px-4 py-3"
+          >
+            <p className="text-sm font-medium">Your post was scheduled.</p>
+            <button
+              type="button"
+              className="text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => setHideScheduledNotice(true)}
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
 
         <div className="mt-6">
           <QueueToolbar

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Crown, Moon, Plus, Zap } from "lucide-react"
-import { NavLink } from "react-router"
+import { Link, NavLink } from "react-router"
 import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/app/hooks"
 import {
@@ -14,8 +14,6 @@ import {
   settingsNavigation,
   type NavItem,
 } from "@/lib/navigation"
-
-const composerReason = "The post composer will be added in a later milestone."
 
 type SidebarProps = {
   onNavigate?: () => void
@@ -155,17 +153,15 @@ export function Sidebar({
             <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
               Manage all your social content in one place.
             </p>
-            <span title={composerReason} className="mt-4 block">
-              <Button
-                type="button"
-                disabled
-                aria-label={`Create Post. ${composerReason}`}
-                className="h-10 w-full rounded-full bg-primary px-3 text-primary-foreground hover:bg-[#6d28d9] disabled:opacity-100"
-              >
+            <Button
+              asChild
+              className="mt-4 h-10 w-full rounded-full bg-primary px-3 text-primary-foreground hover:bg-[#6d28d9]"
+            >
+              <Link to="/compose" onClick={onNavigate}>
                 <Plus data-icon="inline-start" aria-hidden="true" />
                 Create Post
-              </Button>
-            </span>
+              </Link>
+            </Button>
           </div>
 
           <div className={cn("flex items-center gap-1", responsiveLabels && "md:flex-col lg:flex-row")}>

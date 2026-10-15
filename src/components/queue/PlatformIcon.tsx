@@ -62,9 +62,10 @@ const tones: Record<Platform, string> = {
 type PlatformIconProps = {
   platform: Platform
   className?: string
+  decorative?: boolean
 }
 
-export function PlatformIcon({ platform, className }: PlatformIconProps) {
+export function PlatformIcon({ platform, className, decorative = false }: PlatformIconProps) {
   const Mark = marks[platform]
 
   return (
@@ -77,7 +78,7 @@ export function PlatformIcon({ platform, className }: PlatformIconProps) {
       )}
     >
       <Mark />
-      <span className="sr-only">{platformLabels[platform]}</span>
+      {decorative ? null : <span className="sr-only">{platformLabels[platform]}</span>}
     </span>
   )
 }
