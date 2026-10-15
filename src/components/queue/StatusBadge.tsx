@@ -5,14 +5,12 @@ const styles: Record<PostStatus, string> = {
   scheduled: "bg-[#e8f8ee] text-[#178a45]",
   published: "bg-[#e8f1ff] text-[#2f6fe0]",
   failed: "bg-[#fdecec] text-[#e11d48]",
-  draft: "bg-[#f4f1ea] text-[#9a6b16]",
 }
 
 const labels: Record<PostStatus, string> = {
   scheduled: "Scheduled",
   published: "Published",
   failed: "Failed",
-  draft: "Draft",
 }
 
 type StatusBadgeProps = {

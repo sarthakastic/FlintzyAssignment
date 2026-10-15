@@ -1,15 +1,11 @@
-import type { PlatformId } from "@/types/post"
+import type { Platform } from "@/features/posts/postsTypes"
+import { platformConfig, supportedPlatforms } from "@/lib/platform"
 
-export const platformLabels: Record<PlatformId, string> = {
-  instagram: "Instagram",
-  facebook: "Facebook",
-  x: "X",
-  tiktok: "TikTok",
+export const platformLabels: Record<Platform, string> = {
+  facebook: platformConfig.facebook.label,
+  instagram: platformConfig.instagram.label,
+  x: platformConfig.x.label,
+  tiktok: platformConfig.tiktok.label,
 }
 
-export const supportedPlatforms: PlatformId[] = [
-  "instagram",
-  "facebook",
-  "x",
-  "tiktok",
-]
+export { supportedPlatforms }

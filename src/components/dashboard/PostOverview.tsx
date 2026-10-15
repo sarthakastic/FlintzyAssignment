@@ -1,6 +1,10 @@
 import { CircleAlert, CircleCheck, Clock3, FilePenLine } from "lucide-react"
-import type { Post } from "@/types/post"
-import { countPosts } from "@/features/queue/groupPosts"
+import { useAppSelector } from "@/app/hooks"
+import {
+  selectFailedCount,
+  selectPublishedCount,
+  selectScheduledCount,
+} from "@/features/posts/postsSelectors"
 
 const tiles = [
   {
@@ -29,11 +33,12 @@ const tiles = [
   },
 ]
 
-type PostOverviewProps = {
-  posts: Post[]
-}
+export function PostOverview() {
+  const scheduled = useAppSelector(selectScheduledCount)
+  const published = useAppSelector(selectPublishedCount)
+  const failed = useAppSelector(selectFailedCount)
+  const countByStatus = { scheduled, published, failed }
 
-export function PostOverview({ posts }: PostOverviewProps) {
   return (
     <section className="soft-card p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -43,7 +48,7 @@ export function PostOverview({ posts }: PostOverviewProps) {
       <div className="grid grid-cols-2 gap-3">
         {tiles.map((tile) => {
           const Icon = tile.icon
-          const count = countPosts(posts, tile.status)
+          const count = tile.status === "draft" ? 0 : countByStatus[tile.status]
 
           return (
             <div key={tile.status} className="flex items-center gap-2.5">

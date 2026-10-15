@@ -1,4 +1,4 @@
-import type { PlatformId } from "@/types/post"
+import type { Platform } from "@/features/posts/postsTypes"
 import { platformLabels } from "@/lib/platforms"
 import { cn } from "@/lib/utils"
 
@@ -52,7 +52,7 @@ const marks = {
   tiktok: TikTokMark,
 }
 
-const tones: Record<PlatformId, string> = {
+const tones: Record<Platform, string> = {
   instagram: "bg-[#fff1f6] text-[#d62976]",
   facebook: "bg-[#eef4ff] text-[#1877f2]",
   x: "bg-[#f3f3f5] text-[#111111]",
@@ -60,7 +60,7 @@ const tones: Record<PlatformId, string> = {
 }
 
 type PlatformIconProps = {
-  platform: PlatformId
+  platform: Platform
   className?: string
 }
 

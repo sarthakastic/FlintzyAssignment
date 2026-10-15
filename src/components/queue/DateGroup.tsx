@@ -14,8 +14,10 @@ export function DateGroup({ label, detail, count, children }: DateGroupProps) {
     <section>
       <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
         <h2 className="text-[15px] font-semibold text-foreground">
-          {label}{" "}
-          <span className="ml-1 text-sm font-normal text-muted-foreground">{detail}</span>
+          {label}
+          {detail ? (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">{detail}</span>
+          ) : null}
         </h2>
         <p className="text-sm text-muted-foreground">{countLabel}</p>
       </div>

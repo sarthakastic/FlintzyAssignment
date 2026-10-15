@@ -1,19 +1,39 @@
+import { useMemo } from "react"
 import { Plus } from "lucide-react"
+import { useAppDispatch, useAppSelector } from "@/app/hooks"
 import { Button } from "@/components/ui/button"
 import { DateGroup } from "@/components/queue/DateGroup"
 import { PostCard } from "@/components/queue/PostCard"
+import { PostQueueEmptyState } from "@/components/queue/PostQueueEmptyState"
+import { PostQueueErrorState } from "@/components/queue/PostQueueErrorState"
+import { PostQueueSkeleton } from "@/components/queue/PostQueueSkeleton"
 import { IdeaCard } from "@/components/dashboard/IdeaCard"
 import { MiniCalendar } from "@/components/dashboard/MiniCalendar"
 import { PostOverview } from "@/components/dashboard/PostOverview"
 import { SupportedPlatforms } from "@/components/dashboard/SupportedPlatforms"
-import { groupPostsByDate } from "@/features/queue/groupPosts"
-import { posts } from "@/features/queue/posts"
+import {
+  selectAllPosts,
+  selectPostsError,
+  selectPostsInitialized,
+  selectPostsLoading,
+} from "@/features/posts/postsSelectors"
+import { fetchPosts } from "@/features/posts/postsThunks"
+import { groupPostsByLocalDay } from "@/features/posts/postsUtils"
 import { QueueToolbar } from "@/features/queue/QueueToolbar"
 
 const composerReason = "The post composer will be added in a later milestone."
 
 export function QueuePage() {
-  const groups = groupPostsByDate(posts)
+  const dispatch = useAppDispatch()
+  const posts = useAppSelector(selectAllPosts)
+  const loading = useAppSelector(selectPostsLoading)
+  const initialized = useAppSelector(selectPostsInitialized)
+  const error = useAppSelector(selectPostsError)
+  const groups = useMemo(() => groupPostsByLocalDay(posts), [posts])
+
+  function reloadPosts() {
+    void dispatch(fetchPosts({ reload: true }))
+  }
 
   return (
     <div className="mx-auto grid max-w-[1180px] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -51,34 +71,47 @@ export function QueuePage() {
         </div>
 
         <div className="mt-6 flex flex-col gap-6">
-          {groups.length === 0 ? (
-            <div className="soft-card px-6 py-16 text-center">
-              <h2 className="text-base font-semibold">Your queue is ready</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                Your scheduled social media posts will appear here. Create a post
-                to get started.
-              </p>
-            </div>
-          ) : (
-            groups.map((group) => (
-              <DateGroup
-                key={group.key}
-                label={group.label}
-                detail={group.detail}
-                count={group.posts.length}
-              >
-                {group.posts.map((post) => (
-                  <PostCard key={post.id} post={post} />
-                ))}
-              </DateGroup>
-            ))
-          )}
+          {!initialized && !error && posts.length === 0 ? <PostQueueSkeleton /> : null}
+          {error && posts.length === 0 ? (
+            <PostQueueErrorState message={error} retrying={loading} onRetry={reloadPosts} />
+          ) : null}
+          {initialized && posts.length === 0 && !error ? <PostQueueEmptyState /> : null}
+          {posts.length > 0 ? (
+            <>
+              {error ? (
+                <div className="soft-card flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="alert">
+                  <p className="text-sm text-destructive">{error}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full"
+                    disabled={loading}
+                    onClick={reloadPosts}
+                  >
+                    {loading ? "Retrying…" : "Retry"}
+                  </Button>
+                </div>
+              ) : null}
+              {groups.map((group) => (
+                <DateGroup
+                  key={group.key}
+                  label={group.label}
+                  detail={group.detail}
+                  count={group.posts.length}
+                >
+                  {group.posts.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </DateGroup>
+              ))}
+            </>
+          ) : null}
         </div>
       </div>
 
       <aside className="hidden flex-col gap-4 xl:flex">
         <MiniCalendar />
-        <PostOverview posts={posts} />
+        <PostOverview />
         <SupportedPlatforms />
         <IdeaCard />
       </aside>

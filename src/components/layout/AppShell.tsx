@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { Outlet } from "react-router"
+import { useAppDispatch } from "@/app/hooks"
 import { Button } from "@/components/ui/button"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Topbar } from "@/components/layout/Topbar"
+import { fetchPosts } from "@/features/posts/postsThunks"
 
 export function AppShell() {
+  const dispatch = useAppDispatch()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    void dispatch(fetchPosts())
+  }, [dispatch])
 
   useEffect(() => {
     if (!menuOpen) {

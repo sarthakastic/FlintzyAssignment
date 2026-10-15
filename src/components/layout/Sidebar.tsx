@@ -2,9 +2,13 @@ import type { ReactNode } from "react"
 import { Crown, Moon, Plus, Zap } from "lucide-react"
 import { NavLink } from "react-router"
 import { Button } from "@/components/ui/button"
+import { useAppSelector } from "@/app/hooks"
+import {
+  selectFailedCount,
+  selectPublishedCount,
+  selectTotalPostsCount,
+} from "@/features/posts/postsSelectors"
 import { cn } from "@/lib/utils"
-import { countPosts } from "@/features/queue/groupPosts"
-import { posts } from "@/features/queue/posts"
 import {
   primaryNavigation,
   settingsNavigation,
@@ -20,17 +24,20 @@ type SidebarProps = {
   className?: string
 }
 
-function countFor(label: string) {
+function countFor(
+  label: string,
+  counts: { queue: number; published: number; failed: number },
+) {
   if (label === "Queue") {
-    return posts.length
+    return counts.queue
   }
 
-  if (label === "Drafts") {
-    return countPosts(posts, "draft")
+  if (label === "Published") {
+    return counts.published
   }
 
   if (label === "Failed") {
-    return countPosts(posts, "failed")
+    return counts.failed
   }
 
   return 0
@@ -38,15 +45,17 @@ function countFor(label: string) {
 
 function SidebarLink({
   item,
+  counts,
   responsiveLabels,
   onNavigate,
 }: {
   item: NavItem
+  counts: { queue: number; published: number; failed: number }
   responsiveLabels?: boolean
   onNavigate?: () => void
 }) {
   const Icon = item.icon
-  const count = countFor(item.label)
+  const count = countFor(item.label, counts)
 
   return (
     <NavLink
@@ -87,6 +96,11 @@ export function Sidebar({
   className,
 }: SidebarProps) {
   const SettingsIcon = settingsNavigation.icon
+  const counts = {
+    queue: useAppSelector(selectTotalPostsCount),
+    published: useAppSelector(selectPublishedCount),
+    failed: useAppSelector(selectFailedCount),
+  }
 
   return (
     <div className={cn("flex h-full flex-col bg-white px-3.5 py-5", className)}>
@@ -117,6 +131,7 @@ export function Sidebar({
             <li key={item.to}>
               <SidebarLink
                 item={item}
+                counts={counts}
                 responsiveLabels={responsiveLabels}
                 onNavigate={onNavigate}
               />
