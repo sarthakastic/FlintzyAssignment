@@ -16,7 +16,7 @@ export type NavItem = {
 }
 
 export const primaryNavigation: NavItem[] = [
-  { label: "Queue", to: "/", icon: LayoutList, end: true },
+  { label: "Queue", to: "/queue", icon: LayoutList, end: true },
   { label: "Calendar", to: "/calendar", icon: CalendarDays },
   { label: "Drafts", to: "/drafts", icon: File },
   { label: "Published", to: "/published", icon: CircleCheck },

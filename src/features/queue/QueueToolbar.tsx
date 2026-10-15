@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react"
 import { ChevronDown, LayoutList, Search } from "lucide-react"
-import { NavLink } from "react-router"
+import { NavLink, useLocation } from "react-router"
 import { Input } from "@/components/ui/input"
+import type { Platform, PostStatus } from "@/features/posts/postsTypes"
+import { platformConfig, supportedPlatforms } from "@/lib/platform"
 import { cn } from "@/lib/utils"
 
 type Option = {
@@ -10,29 +12,46 @@ type Option = {
   dotClassName: string
 }
 
+const platformDots: Record<Platform, string> = {
+  instagram: "bg-[#d62976]",
+  facebook: "bg-[#1877f2]",
+  x: "bg-[#111111]",
+  tiktok: "bg-[#111111]",
+}
+
 const platformOptions: Option[] = [
   { id: "all", label: "All Platforms", dotClassName: "bg-violet-500" },
-  { id: "instagram", label: "Instagram", dotClassName: "bg-[#d62976]" },
-  { id: "facebook", label: "Facebook", dotClassName: "bg-[#1877f2]" },
-  { id: "x", label: "X", dotClassName: "bg-[#111111]" },
-  { id: "tiktok", label: "TikTok", dotClassName: "bg-[#111111]" },
+  ...supportedPlatforms.map((platform) => ({
+    id: platform,
+    label: platformConfig[platform].label,
+    dotClassName: platformDots[platform],
+  })),
 ]
+
+const statusLabels: Record<PostStatus, { label: string; dotClassName: string }> = {
+  scheduled: { label: "Scheduled", dotClassName: "bg-emerald-400" },
+  published: { label: "Published", dotClassName: "bg-sky-500" },
+  failed: { label: "Failed", dotClassName: "bg-rose-500" },
+}
 
 const statusOptions: Option[] = [
   { id: "all", label: "All Status", dotClassName: "bg-emerald-500" },
-  { id: "scheduled", label: "Scheduled", dotClassName: "bg-emerald-400" },
-  { id: "published", label: "Published", dotClassName: "bg-sky-500" },
-  { id: "failed", label: "Failed", dotClassName: "bg-rose-500" },
-  { id: "draft", label: "Drafts", dotClassName: "bg-amber-400" },
+  ...(Object.keys(statusLabels) as PostStatus[]).map((status) => ({
+    id: status,
+    label: statusLabels[status].label,
+    dotClassName: statusLabels[status].dotClassName,
+  })),
 ]
 
 function PillSelect({
   options,
   value,
+  label,
   onChange,
 }: {
   options: Option[]
   value: string
+  label: string
   onChange: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -69,6 +88,7 @@ function PillSelect({
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
@@ -112,15 +132,54 @@ function PillSelect({
 const viewClassName =
   "inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
-export function QueueToolbar() {
-  const [platform, setPlatform] = useState("all")
-  const [status, setStatus] = useState("all")
+type QueueToolbarProps = {
+  platform: Platform | null
+  status: PostStatus | null
+  search: string
+  showClear: boolean
+  onPlatformChange: (platform: Platform | null) => void
+  onStatusChange: (status: PostStatus | null) => void
+  onSearchChange: (value: string) => void
+  onClear: () => void
+}
+
+export function QueueToolbar({
+  platform,
+  status,
+  search,
+  showClear,
+  onPlatformChange,
+  onStatusChange,
+  onSearchChange,
+  onClear,
+}: QueueToolbarProps) {
+  const location = useLocation()
+  const listSearch = location.pathname === "/queue" ? location.search : ""
 
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
       <div className="flex flex-wrap items-center gap-2">
-        <PillSelect options={platformOptions} value={platform} onChange={setPlatform} />
-        <PillSelect options={statusOptions} value={status} onChange={setStatus} />
+        <PillSelect
+          options={platformOptions}
+          value={platform ?? "all"}
+          label={`Platform: ${platformOptions.find((option) => option.id === (platform ?? "all"))?.label ?? "All Platforms"}`}
+          onChange={(id) => onPlatformChange(id === "all" ? null : (id as Platform))}
+        />
+        <PillSelect
+          options={statusOptions}
+          value={status ?? "all"}
+          label={`Status: ${statusOptions.find((option) => option.id === (status ?? "all"))?.label ?? "All Status"}`}
+          onChange={(id) => onStatusChange(id === "all" ? null : (id as PostStatus))}
+        />
+        {showClear ? (
+          <button
+            type="button"
+            className="inline-flex h-10 items-center rounded-full px-3 text-sm font-medium text-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={onClear}
+          >
+            Clear filters
+          </button>
+        ) : null}
       </div>
       <div className="relative min-w-0 flex-1">
         <Search
@@ -130,12 +189,14 @@ export function QueueToolbar() {
         <Input
           aria-label="Search by content"
           placeholder="Search by content..."
-          className="h-10 rounded-full border-[#eeeaf5] bg-white pl-10 shadow-[0_8px_18px_-14px_rgba(60,40,100,0.45)]"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          className="h-10 w-full rounded-full border-[#eeeaf5] bg-white pl-10 shadow-[0_8px_18px_-14px_rgba(60,40,100,0.45)]"
         />
       </div>
       <div className="inline-flex w-fit items-center rounded-full border border-[#eeeaf5] bg-white p-1 shadow-[0_8px_18px_-14px_rgba(60,40,100,0.35)]">
         <NavLink
-          to="/"
+          to={{ pathname: "/queue", search: listSearch }}
           end
           className={({ isActive }) =>
             cn(viewClassName, isActive ? "bg-accent text-primary" : "text-muted-foreground")

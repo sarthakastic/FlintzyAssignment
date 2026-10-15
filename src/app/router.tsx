@@ -1,13 +1,20 @@
-import { Route, Routes } from "react-router"
+import { Navigate, Route, Routes, useLocation } from "react-router"
 import { AppShell } from "@/components/layout/AppShell"
 import { PlaceholderPage } from "@/components/PlaceholderPage"
 import { QueuePage } from "@/features/queue/QueuePage"
+
+function RedirectToQueue() {
+  const location = useLocation()
+
+  return <Navigate to={{ pathname: "/queue", search: location.search }} replace />
+}
 
 export function AppRouter() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<QueuePage />} />
+        <Route index element={<RedirectToQueue />} />
+        <Route path="queue" element={<QueuePage />} />
         <Route
           path="calendar"
           element={<PlaceholderPage title="Calendar" />}

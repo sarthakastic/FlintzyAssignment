@@ -6,6 +6,7 @@ import { DateGroup } from "@/components/queue/DateGroup"
 import { PostCard } from "@/components/queue/PostCard"
 import { PostQueueEmptyState } from "@/components/queue/PostQueueEmptyState"
 import { PostQueueErrorState } from "@/components/queue/PostQueueErrorState"
+import { PostQueueNoResults } from "@/components/queue/PostQueueNoResults"
 import { PostQueueSkeleton } from "@/components/queue/PostQueueSkeleton"
 import { IdeaCard } from "@/components/dashboard/IdeaCard"
 import { MiniCalendar } from "@/components/dashboard/MiniCalendar"
@@ -17,9 +18,11 @@ import {
   selectPostsInitialized,
   selectPostsLoading,
 } from "@/features/posts/postsSelectors"
+import { filterPosts } from "@/features/posts/postFilters"
 import { fetchPosts } from "@/features/posts/postsThunks"
 import { groupPostsByLocalDay } from "@/features/posts/postsUtils"
 import { QueueToolbar } from "@/features/queue/QueueToolbar"
+import { useQueueFilters } from "@/features/queue/useQueueFilters"
 
 const composerReason = "The post composer will be added in a later milestone."
 
@@ -29,7 +32,17 @@ export function QueuePage() {
   const loading = useAppSelector(selectPostsLoading)
   const initialized = useAppSelector(selectPostsInitialized)
   const error = useAppSelector(selectPostsError)
-  const groups = useMemo(() => groupPostsByLocalDay(posts), [posts])
+  const filters = useQueueFilters()
+  const visiblePosts = useMemo(
+    () =>
+      filterPosts(posts, {
+        platform: filters.platform,
+        status: filters.status,
+        search: filters.searchText,
+      }),
+    [filters.platform, filters.searchText, filters.status, posts],
+  )
+  const groups = useMemo(() => groupPostsByLocalDay(visiblePosts), [visiblePosts])
 
   function reloadPosts() {
     void dispatch(fetchPosts({ reload: true }))
@@ -67,7 +80,16 @@ export function QueuePage() {
         </div>
 
         <div className="mt-6">
-          <QueueToolbar />
+          <QueueToolbar
+            platform={filters.platform}
+            status={filters.status}
+            search={filters.searchText}
+            showClear={filters.hasActiveFilters}
+            onPlatformChange={filters.setPlatform}
+            onStatusChange={filters.setStatus}
+            onSearchChange={filters.updateSearch}
+            onClear={filters.clearFilters}
+          />
         </div>
 
         <div className="mt-6 flex flex-col gap-6">
@@ -76,7 +98,10 @@ export function QueuePage() {
             <PostQueueErrorState message={error} retrying={loading} onRetry={reloadPosts} />
           ) : null}
           {initialized && posts.length === 0 && !error ? <PostQueueEmptyState /> : null}
-          {posts.length > 0 ? (
+          {initialized && posts.length > 0 && visiblePosts.length === 0 ? (
+            <PostQueueNoResults onClear={filters.clearFilters} />
+          ) : null}
+          {visiblePosts.length > 0 ? (
             <>
               {error ? (
                 <div className="soft-card flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="alert">
