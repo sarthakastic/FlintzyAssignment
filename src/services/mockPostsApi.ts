@@ -1,7 +1,9 @@
 import type { CreatePostInput, Platform, Post } from "@/features/posts/postsTypes"
 import { characterLimitMessage, platformsOverLimit } from "@/features/posts/postValidation"
+import { isHttpUrl } from "@/features/posts/scheduleTime"
+import { isDue, retryOutcomeStatus } from "@/features/posts/postsUtils"
 import { supportedPlatforms } from "@/lib/platform"
-import { mockPosts } from "@/services/mockData"
+import { createMockPosts } from "@/services/mockData"
 import { delay } from "@/services/delay"
 import { storageService } from "@/services/storageService"
 
@@ -23,14 +25,35 @@ function copyPosts(posts: Post[]) {
   return posts.map(copyPost)
 }
 
+// Simulates the publishing worker: scheduled posts whose time has passed are
+// treated as published. Returns the posts that changed and persists them.
+function publishDue(posts: Post[], now = Date.now()) {
+  const published: Post[] = []
+  const next = posts.map((post) => {
+    if (post.status !== "scheduled" || !isDue(post, now)) {
+      return post
+    }
+
+    const updated: Post = { ...post, platforms: [...post.platforms], status: "published" }
+    published.push(updated)
+    return updated
+  })
+
+  if (published.length > 0) {
+    storageService.savePosts(next)
+  }
+
+  return { posts: next, published }
+}
+
 function readPersistedPosts() {
   const stored = storageService.getPosts()
 
   if (stored !== null) {
-    return stored
+    return publishDue(stored).posts
   }
 
-  const seeded = copyPosts(mockPosts)
+  const seeded = createMockPosts()
   storageService.savePosts(seeded)
   return copyPosts(seeded)
 }
@@ -67,6 +90,11 @@ function assertCreateInput(input: CreatePostInput) {
   const overLimit = platformsOverLimit(input.content, platforms)
   if (overLimit.length > 0) {
     throw new Error(characterLimitMessage(overLimit))
+  }
+
+  const mediaUrl = input.mediaUrl?.trim()
+  if (mediaUrl && !isHttpUrl(mediaUrl)) {
+    throw new Error("The image URL must be a valid http or https URL.")
   }
 
   return platforms
@@ -126,34 +154,34 @@ export const mockPostsApi = {
     const existing = posts.find((post) => post.id === id)
 
     if (!existing) {
-      throw new Error("Post not found.")
+      throw new Error("This post is no longer eligible for retry.")
     }
 
     if (existing.status !== "failed") {
-      throw new Error("Only failed posts can be retried.")
+      throw new Error("This post is no longer eligible for retry.")
     }
 
     await delay(retryDelayMs)
 
     if (didRetryFail()) {
-      throw new Error("Temporary publishing error. Please retry.")
+      throw new Error("Retry failed. Your post is still marked as failed. Please try again.")
     }
 
     const latest = readPersistedPosts()
     const current = latest.find((post) => post.id === id)
 
     if (!current) {
-      throw new Error("Post not found.")
+      throw new Error("This post is no longer eligible for retry.")
     }
 
     if (current.status !== "failed") {
-      throw new Error("Only failed posts can be retried.")
+      throw new Error("This post is no longer eligible for retry.")
     }
 
     const updated: Post = {
       ...current,
       platforms: [...current.platforms],
-      status: "scheduled",
+      status: retryOutcomeStatus(current),
     }
 
     delete updated.errorMessage
@@ -163,5 +191,17 @@ export const mockPostsApi = {
     )
 
     return copyPost(updated)
+  },
+
+  async publishDuePosts(): Promise<Post[]> {
+    const stored = storageService.getPosts()
+    return stored === null ? [] : copyPosts(publishDue(stored).published)
+  },
+
+  async resetPosts(): Promise<Post[]> {
+    await delay(requestDelayMs)
+    const seeded = createMockPosts()
+    storageService.savePosts(seeded)
+    return copyPosts(seeded)
   },
 }

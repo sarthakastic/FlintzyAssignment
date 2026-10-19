@@ -4,14 +4,26 @@ function pad(value: number) {
   return String(value).padStart(2, "0")
 }
 
-export function defaultScheduleLocalValue(now = new Date()) {
-  const next = new Date(now.getTime() + 60 * 60 * 1000)
-  next.setSeconds(0, 0)
+export const scheduleMinuteStep = 5
 
-  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}T${pad(next.getHours())}:${pad(next.getMinutes())}`
+/** Formats a Date as a `YYYY-MM-DDTHH:MM` wall-clock value in the local time zone. */
+export function toLocalDateTimeValue(date: Date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-function parseLocalDateTime(value: string) {
+/** Rounds up to the next whole step of minutes (always strictly after `date`'s minute). */
+export function roundUpToMinuteStep(date: Date, step = scheduleMinuteStep) {
+  const next = new Date(date)
+  next.setSeconds(0, 0)
+  next.setMinutes(Math.floor(next.getMinutes() / step) * step + step)
+  return next
+}
+
+export function defaultScheduleLocalValue(now = new Date()) {
+  return toLocalDateTimeValue(roundUpToMinuteStep(new Date(now.getTime() + 60 * 60 * 1000)))
+}
+
+export function parseLocalDateTime(value: string) {
   if (!localDateTimePattern.test(value)) {
     return null
   }
@@ -33,14 +45,6 @@ function parseLocalDateTime(value: string) {
   }
 
   return date
-}
-
-export function minimumScheduleLocalValue(now = new Date()) {
-  const next = new Date(now)
-  next.setSeconds(0, 0)
-  next.setMinutes(next.getMinutes() + 1)
-
-  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}T${pad(next.getHours())}:${pad(next.getMinutes())}`
 }
 
 export function localDateTimeToUtcIso(value: string) {

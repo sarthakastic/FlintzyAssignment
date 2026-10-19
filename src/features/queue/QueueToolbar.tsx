@@ -1,6 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react"
-import { ChevronDown, LayoutList, Search } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { ChevronDown, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import type { Platform, PostStatus } from "@/features/posts/postsTypes"
 import { platformConfig, supportedPlatforms } from "@/lib/platform"
@@ -13,10 +11,10 @@ type Option = {
 }
 
 const platformDots: Record<Platform, string> = {
-  instagram: "bg-[#d62976]",
-  facebook: "bg-[#1877f2]",
-  x: "bg-[#111111]",
-  tiktok: "bg-[#111111]",
+  instagram: "bg-instagram",
+  facebook: "bg-facebook",
+  x: "bg-mono",
+  tiktok: "bg-mono",
 }
 
 const platformOptions: Option[] = [
@@ -54,83 +52,36 @@ function PillSelect({
   label: string
   onChange: (id: string) => void
 }) {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const listId = useId()
   const selected = options.find((option) => option.id === value) ?? options[0]
 
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    function onPointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", onPointerDown)
-    document.addEventListener("keydown", onKeyDown)
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown)
-      document.removeEventListener("keydown", onKeyDown)
-    }
-  }, [open])
-
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
+    <div className="relative inline-flex">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute top-1/2 left-3 size-2 -translate-y-1/2 rounded-full",
+          selected.dotClassName,
+        )}
+      />
+      <select
         aria-label={label}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        className="inline-flex h-10 items-center gap-2 rounded-full border border-[#eeeaf5] bg-white px-3 text-sm font-medium shadow-[0_8px_18px_-14px_rgba(60,40,100,0.45)] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => setOpen((current) => !current)}
+        value={selected.id}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 cursor-pointer appearance-none rounded-full border border-border bg-card pr-8 pl-7 text-sm font-medium control-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <span aria-hidden="true" className={cn("size-2 rounded-full", selected.dotClassName)} />
-        {selected.label}
-        <ChevronDown aria-hidden="true" className="size-3.5 text-muted-foreground" />
-      </button>
-      {open ? (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute z-20 mt-2 min-w-44 rounded-2xl border border-[#eeeaf5] bg-white p-1.5 shadow-[0_16px_40px_-24px_rgba(40,24,72,0.45)]"
-        >
-          {options.map((option) => (
-            <li key={option.id} role="option" aria-selected={option.id === value}>
-              <button
-                type="button"
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  option.id === value && "bg-accent text-primary",
-                )}
-                onClick={() => {
-                  onChange(option.id)
-                  setOpen(false)
-                }}
-              >
-                <span aria-hidden="true" className={cn("size-2 rounded-full", option.dotClassName)} />
-                {option.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-muted-foreground"
+      />
     </div>
   )
 }
-
-const viewClassName =
-  "inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 type QueueToolbarProps = {
   platform: Platform | null
@@ -153,22 +104,19 @@ export function QueueToolbar({
   onSearchChange,
   onClear,
 }: QueueToolbarProps) {
-  const location = useLocation()
-  const listSearch = location.pathname === "/queue" ? location.search : ""
-
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
       <div className="flex flex-wrap items-center gap-2">
         <PillSelect
           options={platformOptions}
           value={platform ?? "all"}
-          label={`Platform: ${platformOptions.find((option) => option.id === (platform ?? "all"))?.label ?? "All Platforms"}`}
+          label="Filter by platform"
           onChange={(id) => onPlatformChange(id === "all" ? null : (id as Platform))}
         />
         <PillSelect
           options={statusOptions}
           value={status ?? "all"}
-          label={`Status: ${statusOptions.find((option) => option.id === (status ?? "all"))?.label ?? "All Status"}`}
+          label="Filter by status"
           onChange={(id) => onStatusChange(id === "all" ? null : (id as PostStatus))}
         />
         {showClear ? (
@@ -191,28 +139,8 @@ export function QueueToolbar({
           placeholder="Search by content..."
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
-          className="h-10 w-full rounded-full border-[#eeeaf5] bg-white pl-10 shadow-[0_8px_18px_-14px_rgba(60,40,100,0.45)]"
+          className="h-10 w-full rounded-full border-border bg-card pl-10 control-shadow"
         />
-      </div>
-      <div className="inline-flex w-fit items-center rounded-full border border-[#eeeaf5] bg-white p-1 shadow-[0_8px_18px_-14px_rgba(60,40,100,0.35)]">
-        <NavLink
-          to={{ pathname: "/queue", search: listSearch }}
-          end
-          className={({ isActive }) =>
-            cn(viewClassName, isActive ? "bg-accent text-primary" : "text-muted-foreground")
-          }
-        >
-          <LayoutList aria-hidden="true" className="size-3.5" />
-          List
-        </NavLink>
-        <NavLink
-          to="/calendar"
-          className={({ isActive }) =>
-            cn(viewClassName, isActive ? "bg-accent text-primary" : "text-muted-foreground")
-          }
-        >
-          Calendar
-        </NavLink>
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ type PostsThunkState = {
   posts: {
     loading: boolean
     initialized: boolean
+    retryingIds: string[]
   }
 }
 
@@ -52,6 +53,52 @@ export const createPost = createAsyncThunk<
   } catch (error) {
     return rejectWithValue(
       toErrorMessage(error, "Unable to create the post. Please retry."),
+    )
+  }
+})
+
+const retryFallback = "Retry failed. Your post is still marked as failed. Please try again."
+
+export const retryPost = createAsyncThunk<
+  Post,
+  string,
+  { rejectValue: string; state: PostsThunkState }
+>(
+  "posts/retryPost",
+  async (id, { rejectWithValue }) => {
+    try {
+      return await mockPostsApi.retryPost(id)
+    } catch (error) {
+      return rejectWithValue(toErrorMessage(error, retryFallback))
+    }
+  },
+  {
+    condition: (id, { getState }) => !getState().posts.retryingIds.includes(id),
+  },
+)
+
+export const publishDuePosts = createAsyncThunk<
+  Post[],
+  void,
+  { state: PostsThunkState }
+>(
+  "posts/publishDuePosts",
+  () => mockPostsApi.publishDuePosts(),
+  {
+    condition: (_, { getState }) => getState().posts.initialized,
+  },
+)
+
+export const resetPosts = createAsyncThunk<
+  Post[],
+  void,
+  { rejectValue: string }
+>("posts/resetPosts", async (_, { rejectWithValue }) => {
+  try {
+    return await mockPostsApi.resetPosts()
+  } catch (error) {
+    return rejectWithValue(
+      toErrorMessage(error, "Unable to reset the demo data. Please try again."),
     )
   }
 })

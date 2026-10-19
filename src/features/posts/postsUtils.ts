@@ -4,7 +4,19 @@ export type PostGroupData = {
   key: string
   label: string
   detail: string
+  /** True for local days before today. */
+  past: boolean
   posts: Post[]
+}
+
+export function isDue(post: Post, now = Date.now()) {
+  return Date.parse(post.scheduledAt) <= now
+}
+
+// A successful retry re-queues a failed post. If its time has already passed it
+// goes out straight away, so the confirmed status is "published".
+export function retryOutcomeStatus(post: Post, now = Date.now()): Post["status"] {
+  return isDue(post, now) ? "published" : "scheduled"
 }
 
 function parseTimestamp(timestamp: string) {
@@ -47,10 +59,15 @@ export function getLocalDayLabel(timestamp: string, now = new Date()) {
     return "Tomorrow"
   }
 
+  if (difference === -1) {
+    return "Yesterday"
+  }
+
   return new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
+    ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
   }).format(date)
 }
 
@@ -81,18 +98,26 @@ function formatNearbyDate(timestamp: string) {
   }).format(date)
 }
 
-export function groupPostsByLocalDay(posts: Post[], now = new Date()): PostGroupData[] {
-  const sorted = [...posts].sort((left, right) => {
-    const leftTime = Date.parse(left.scheduledAt)
-    const rightTime = Date.parse(right.scheduledAt)
-    const safeLeft = Number.isNaN(leftTime) ? Number.POSITIVE_INFINITY : leftTime
-    const safeRight = Number.isNaN(rightTime) ? Number.POSITIVE_INFINITY : rightTime
-    return safeLeft - safeRight
-  })
+const relativeLabels = new Set(["Today", "Tomorrow", "Yesterday"])
 
+function compareScheduledAt(left: Post, right: Post) {
+  const leftTime = Date.parse(left.scheduledAt)
+  const rightTime = Date.parse(right.scheduledAt)
+  const safeLeft = Number.isNaN(leftTime) ? Number.POSITIVE_INFINITY : leftTime
+  const safeRight = Number.isNaN(rightTime) ? Number.POSITIVE_INFINITY : rightTime
+  return safeLeft - safeRight
+}
+
+/**
+ * Groups posts by local calendar day. Today and upcoming days come first in
+ * chronological order, followed by past days with the most recent first.
+ * Posts within a day are always chronological.
+ */
+export function groupPostsByLocalDay(posts: Post[], now = new Date()): PostGroupData[] {
+  const todayKey = formatLocalDateKey(now.toISOString())
   const groups = new Map<string, PostGroupData>()
 
-  for (const post of sorted) {
+  for (const post of [...posts].sort(compareScheduledAt)) {
     const key = formatLocalDateKey(post.scheduledAt)
     const existing = groups.get(key)
 
@@ -106,10 +131,14 @@ export function groupPostsByLocalDay(posts: Post[], now = new Date()): PostGroup
     groups.set(key, {
       key,
       label,
-      detail: label === "Today" || label === "Tomorrow" ? formatNearbyDate(post.scheduledAt) : "",
+      detail: relativeLabels.has(label) ? formatNearbyDate(post.scheduledAt) : "",
+      past: key !== "invalid" && key < todayKey,
       posts: [post],
     })
   }
 
-  return [...groups.values()]
+  const all = [...groups.values()]
+  const upcoming = all.filter((group) => !group.past)
+  const past = all.filter((group) => group.past).reverse()
+  return [...upcoming, ...past]
 }

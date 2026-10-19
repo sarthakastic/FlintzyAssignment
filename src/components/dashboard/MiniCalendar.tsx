@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useAppSelector } from "@/app/hooks"
+import { selectAllPosts } from "@/features/posts/postsSelectors"
+import { formatLocalDateKey } from "@/features/posts/postsUtils"
 
 const weekdays = ["S", "M", "T", "W", "T", "F", "S"]
 
@@ -31,7 +34,15 @@ export function MiniCalendar() {
   const [visible, setVisible] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   )
-  const [selected, setSelected] = useState(today)
+  const posts = useAppSelector(selectAllPosts)
+  const postsPerDay = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const post of posts) {
+      const key = formatLocalDateKey(post.scheduledAt)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }, [posts])
   const cells = buildCells(visible.getFullYear(), visible.getMonth())
   const title = visible.toLocaleDateString(undefined, {
     month: "long",
@@ -77,23 +88,30 @@ export function MiniCalendar() {
           }
 
           const date = new Date(visible.getFullYear(), visible.getMonth(), day)
-          const active = isSameDay(date, selected)
+          const isToday = isSameDay(date, today)
+          const count = postsPerDay.get(formatLocalDateKey(date.toISOString())) ?? 0
+          const label = `${date.toLocaleDateString()}${count > 0 ? `, ${count} ${count === 1 ? "post" : "posts"}` : ""}`
 
           return (
-            <button
+            <span
               key={day}
-              type="button"
-              aria-pressed={active}
-              aria-label={date.toLocaleDateString()}
-              className={`mx-auto inline-flex size-7 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                active
-                  ? "bg-primary font-semibold text-primary-foreground"
-                  : "text-foreground hover:bg-muted"
+              role="img"
+              aria-label={label}
+              aria-current={isToday ? "date" : undefined}
+              className={`relative mx-auto inline-flex size-7 items-center justify-center rounded-full ${
+                isToday ? "bg-primary font-semibold text-primary-foreground" : "text-foreground"
               }`}
-              onClick={() => setSelected(date)}
             >
               {day}
-            </button>
+              {count > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className={`absolute bottom-0.5 size-1 rounded-full ${
+                    isToday ? "bg-primary-foreground" : "bg-primary"
+                  }`}
+                />
+              ) : null}
+            </span>
           )
         })}
       </div>

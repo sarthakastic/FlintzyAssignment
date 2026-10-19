@@ -51,7 +51,16 @@ export function withoutInvalidQueueFilters(params: URLSearchParams) {
   return next
 }
 
-export function filterPosts(posts: Post[], filters: ActiveQueueFilters) {
+/**
+ * `retryingIds` are posts with an optimistic status change in flight. They keep
+ * matching the "failed" filter so a retry does not make the card vanish (and
+ * reappear on rollback) mid-request.
+ */
+export function filterPosts(
+  posts: Post[],
+  filters: ActiveQueueFilters,
+  retryingIds: readonly string[] = [],
+) {
   const query = filters.search.trim().toLowerCase()
 
   return posts.filter((post) => {
@@ -59,7 +68,8 @@ export function filterPosts(posts: Post[], filters: ActiveQueueFilters) {
       return false
     }
 
-    if (filters.status && post.status !== filters.status) {
+    const status = retryingIds.includes(post.id) ? "failed" : post.status
+    if (filters.status && status !== filters.status) {
       return false
     }
 

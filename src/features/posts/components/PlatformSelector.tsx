@@ -49,8 +49,8 @@ export function PlatformSelector({
             className={cn(
               "flex min-h-12 items-center gap-2 rounded-2xl border px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60",
               selected
-                ? "border-primary bg-[#f3eefe] text-primary"
-                : "border-[#eeeaf5] bg-white text-foreground hover:bg-muted",
+                ? "border-primary bg-accent text-primary"
+                : "border-border bg-card text-foreground hover:bg-muted",
             )}
           >
             <PlatformIcon platform={platform} decorative />

@@ -1,7 +1,11 @@
 import { useState } from "react"
-import { Clock, ImageIcon } from "lucide-react"
+import { Clock, ImageIcon, LoaderCircle, RotateCw } from "lucide-react"
+import { useAppDispatch, useAppSelector } from "@/app/hooks"
+import { Button } from "@/components/ui/button"
 import { PlatformIcon } from "@/components/queue/PlatformIcon"
 import { StatusBadge } from "@/components/queue/StatusBadge"
+import { selectRetryingIds } from "@/features/posts/postsSelectors"
+import { retryPost } from "@/features/posts/postsThunks"
 import { formatLocalTime } from "@/features/posts/postsUtils"
 import type { Post } from "@/types/post"
 
@@ -37,6 +41,18 @@ function MediaPreview({ url }: { url?: string }) {
 }
 
 export function PostCard({ post }: PostCardProps) {
+  const dispatch = useAppDispatch()
+  const retrying = useAppSelector(selectRetryingIds).includes(post.id)
+  const showRetry = post.status === "failed" || retrying
+
+  function onRetry() {
+    if (retrying) {
+      return
+    }
+
+    void dispatch(retryPost(post.id))
+  }
+
   return (
     <article className="flex min-w-0 flex-col gap-3 px-3.5 py-3.5 sm:flex-row sm:items-center sm:px-4">
       <MediaPreview url={post.mediaUrl} />
@@ -48,7 +64,7 @@ export function PostCard({ post }: PostCardProps) {
           <p className="mt-1 line-clamp-2 text-xs leading-4 text-destructive">{post.errorMessage}</p>
         ) : null}
       </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 lg:max-w-[460px] lg:flex-nowrap lg:justify-end">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 lg:max-w-[560px] lg:flex-nowrap lg:justify-end">
         <div className="flex flex-wrap items-center gap-1.5">
           {post.platforms.map((platform) => (
             <PlatformIcon key={platform} platform={platform} />
@@ -63,6 +79,24 @@ export function PostCard({ post }: PostCardProps) {
           <p className="mt-0.5 pl-5 text-[11px] text-muted-foreground">Local time</p>
         </div>
         <StatusBadge status={post.status} />
+        {showRetry ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            disabled={retrying}
+            aria-busy={retrying}
+            onClick={onRetry}
+          >
+            {retrying ? (
+              <LoaderCircle aria-hidden="true" className="animate-spin" />
+            ) : (
+              <RotateCw aria-hidden="true" />
+            )}
+            {retrying ? "Retrying..." : "Retry"}
+          </Button>
+        ) : null}
       </div>
     </article>
   )

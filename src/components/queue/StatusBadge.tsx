@@ -2,9 +2,9 @@ import type { PostStatus } from "@/types/post"
 import { cn } from "@/lib/utils"
 
 const styles: Record<PostStatus, string> = {
-  scheduled: "bg-[#e8f8ee] text-[#178a45]",
-  published: "bg-[#e8f1ff] text-[#2f6fe0]",
-  failed: "bg-[#fdecec] text-[#e11d48]",
+  scheduled: "bg-success-soft text-success",
+  published: "bg-info-soft text-info",
+  failed: "bg-danger-soft text-destructive",
 }
 
 const labels: Record<PostStatus, string> = {

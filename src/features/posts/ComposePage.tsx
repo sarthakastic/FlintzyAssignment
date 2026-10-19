@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PlatformIcon } from "@/components/queue/PlatformIcon"
 import { PlatformSelector } from "@/features/posts/components/PlatformSelector"
+import { SchedulePicker } from "@/features/posts/components/SchedulePicker"
 import type { CreatePostInput } from "@/features/posts/postsTypes"
 import {
   orderedSelectedPlatforms,
@@ -21,7 +22,6 @@ import {
   isHttpUrl,
   localDateTimeToUtcIso,
   localTimeZoneName,
-  minimumScheduleLocalValue,
 } from "@/features/posts/scheduleTime"
 import { platformConfig } from "@/lib/platform"
 import { cn } from "@/lib/utils"
@@ -165,7 +165,7 @@ export function ComposePage() {
               aria-invalid={Boolean(errors.content)}
               aria-describedby={errors.content ? "post-content-error character-counts" : "character-counts"}
               onChange={(event) => update("content", event.target.value)}
-              className="mt-2 min-h-40 w-full resize-y rounded-2xl border border-[#eeeaf5] bg-white px-4 py-3 text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+              className="mt-2 min-h-40 w-full resize-y rounded-2xl border border-border bg-card px-4 py-3 text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
             />
             <div id="character-counts" className="mt-2" aria-live="polite">
               {selectedPlatforms.length === 0 ? (
@@ -183,8 +183,8 @@ export function ComposePage() {
                           className={cn(
                             "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
                             exceeded
-                              ? "border-destructive/30 bg-[#fdecec] font-semibold text-destructive"
-                              : "border-[#eeeaf5] bg-[#f7f5fb] text-muted-foreground",
+                              ? "border-destructive/30 bg-danger-soft font-semibold text-destructive"
+                              : "border-border bg-muted text-muted-foreground",
                           )}
                         >
                           {platformConfig[platform].label}
@@ -248,7 +248,7 @@ export function ComposePage() {
               aria-invalid={Boolean(errors.mediaUrl)}
               aria-describedby={errors.mediaUrl ? "post-image-error" : undefined}
               onChange={(event) => update("mediaUrl", event.target.value)}
-              className="mt-2 h-11 rounded-2xl border-[#eeeaf5] bg-white px-4"
+              className="mt-2 h-11 rounded-2xl border-border bg-card px-4"
             />
             {errors.mediaUrl ? (
               <p id="post-image-error" className="mt-2 text-sm text-destructive">
@@ -263,16 +263,16 @@ export function ComposePage() {
             <label htmlFor="post-schedule" className="text-sm font-semibold">
               Schedule date and time
             </label>
-            <Input
-              id="post-schedule"
-              type="datetime-local"
-              value={values.scheduledAt}
-              min={minimumScheduleLocalValue()}
-              aria-invalid={Boolean(errors.scheduledAt)}
-              aria-describedby={errors.scheduledAt ? "schedule-timezone post-schedule-error" : "schedule-timezone"}
-              onChange={(event) => update("scheduledAt", event.target.value)}
-              className="mt-2 h-11 rounded-2xl border-[#eeeaf5] bg-white px-4"
-            />
+            <div className="mt-2">
+              <SchedulePicker
+                id="post-schedule"
+                value={values.scheduledAt}
+                disabled={creating}
+                invalid={Boolean(errors.scheduledAt)}
+                describedBy={errors.scheduledAt ? "schedule-timezone post-schedule-error" : "schedule-timezone"}
+                onChange={(scheduledAt) => update("scheduledAt", scheduledAt)}
+              />
+            </div>
             <p id="schedule-timezone" className="mt-2 text-xs text-muted-foreground">
               {timeZone
                 ? `Times shown in your local timezone (${timeZone}).`
@@ -299,7 +299,7 @@ export function ComposePage() {
               type="submit"
               disabled={creating || overLimit.length > 0}
               aria-describedby={overLimit.length > 0 ? "character-counts" : undefined}
-              className="rounded-full bg-primary text-primary-foreground hover:bg-[#6d28d9]"
+              className="rounded-full bg-primary text-primary-foreground hover:bg-primary-hover"
             >
               {creating ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
               {creating ? "Scheduling…" : "Schedule Post"}
@@ -320,7 +320,7 @@ export function ComposePage() {
               values.platforms.map((platform) => (
                 <span
                   key={platform}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#f7f5fb] px-2 py-1 text-xs font-medium"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-1 text-xs font-medium"
                 >
                   <PlatformIcon platform={platform} decorative className="size-6" />
                   {platformConfig[platform].label}

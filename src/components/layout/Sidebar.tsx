@@ -1,19 +1,10 @@
 import type { ReactNode } from "react"
-import { Crown, Moon, Plus, Zap } from "lucide-react"
-import { Link, NavLink } from "react-router"
-import { Button } from "@/components/ui/button"
+import { Zap } from "lucide-react"
+import { NavLink } from "react-router"
 import { useAppSelector } from "@/app/hooks"
-import {
-  selectFailedCount,
-  selectPublishedCount,
-  selectTotalPostsCount,
-} from "@/features/posts/postsSelectors"
+import { selectTotalPostsCount } from "@/features/posts/postsSelectors"
+import { primaryNavigation } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
-import {
-  primaryNavigation,
-  settingsNavigation,
-  type NavItem,
-} from "@/lib/navigation"
 
 type SidebarProps = {
   onNavigate?: () => void
@@ -22,99 +13,29 @@ type SidebarProps = {
   className?: string
 }
 
-function countFor(
-  label: string,
-  counts: { queue: number; published: number; failed: number },
-) {
-  if (label === "Queue") {
-    return counts.queue
-  }
-
-  if (label === "Published") {
-    return counts.published
-  }
-
-  if (label === "Failed") {
-    return counts.failed
-  }
-
-  return 0
-}
-
-function SidebarLink({
-  item,
-  counts,
-  responsiveLabels,
-  onNavigate,
-}: {
-  item: NavItem
-  counts: { queue: number; published: number; failed: number }
-  responsiveLabels?: boolean
-  onNavigate?: () => void
-}) {
-  const Icon = item.icon
-  const count = countFor(item.label, counts)
-
-  return (
-    <NavLink
-      to={item.to}
-      end={item.end}
-      title={responsiveLabels ? item.label : undefined}
-      onClick={onNavigate}
-      className={({ isActive }) =>
-        cn(
-          "flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-[#5d6178] transition-colors hover:bg-[#f7f5fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          responsiveLabels && "md:justify-center md:px-0 lg:justify-start lg:px-3",
-          isActive && "bg-[#f3eefe] text-primary hover:bg-[#f3eefe]",
-        )
-      }
-    >
-      <Icon aria-hidden="true" className="size-[18px] shrink-0" />
-      <span className={cn("flex-1", responsiveLabels && "md:sr-only lg:not-sr-only")}>
-        {item.label}
-      </span>
-      {count > 0 ? (
-        <span
-          className={cn(
-            "inline-flex min-w-6 items-center justify-center rounded-full bg-[#eceaf3] px-1.5 text-xs font-semibold text-[#4b5168]",
-            responsiveLabels && "md:sr-only lg:not-sr-only",
-          )}
-        >
-          {count}
-        </span>
-      ) : null}
-    </NavLink>
-  )
-}
-
 export function Sidebar({
   onNavigate,
   responsiveLabels = false,
   headerAction,
   className,
 }: SidebarProps) {
-  const SettingsIcon = settingsNavigation.icon
-  const counts = {
-    queue: useAppSelector(selectTotalPostsCount),
-    published: useAppSelector(selectPublishedCount),
-    failed: useAppSelector(selectFailedCount),
-  }
+  const totalPosts = useAppSelector(selectTotalPostsCount)
 
   return (
-    <div className={cn("flex h-full flex-col bg-white px-3.5 py-5", className)}>
+    <div className={cn("flex h-full flex-col bg-sidebar px-3.5 py-5", className)}>
       <div
         className={cn(
           "flex items-center gap-2.5 px-2",
-          responsiveLabels && "md:justify-center md:px-0 lg:justify-start lg:px-2",
+          responsiveLabels && "rail-row",
         )}
       >
-        <span className="inline-flex size-8 items-center justify-center rounded-xl bg-[#f3eefe] text-primary">
+        <span className="inline-flex size-8 items-center justify-center rounded-xl bg-accent text-primary">
           <Zap aria-hidden="true" className="size-4 fill-current" />
         </span>
         <span
           className={cn(
             "text-lg font-bold tracking-tight",
-            responsiveLabels && "md:sr-only lg:not-sr-only",
+            responsiveLabels && "rail-label",
           )}
         >
           Flintzy
@@ -123,75 +44,45 @@ export function Sidebar({
       </div>
       <div className="mx-2 mt-4 border-t border-sidebar-border" />
 
-      <nav aria-label="Primary" className="mt-4 flex flex-1 flex-col">
+      <nav aria-label="Primary" className="mt-4">
         <ul className="flex flex-col gap-1">
-          {primaryNavigation.map((item) => (
-            <li key={item.to}>
-              <SidebarLink
-                item={item}
-                counts={counts}
-                responsiveLabels={responsiveLabels}
-                onNavigate={onNavigate}
-              />
-            </li>
-          ))}
+          {primaryNavigation.map((item) => {
+            const Icon = item.icon
+            const count = item.to === "/queue" ? totalPosts : 0
+
+            return (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  title={responsiveLabels ? item.label : undefined}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      responsiveLabels && "rail-row",
+                      isActive && "bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground",
+                    )
+                  }
+                >
+                  <Icon aria-hidden="true" className="size-[18px] shrink-0" />
+                  <span className={cn("flex-1", responsiveLabels && "rail-label")}>
+                    {item.label}
+                  </span>
+                  {count > 0 ? (
+                    <span
+                      className={cn(
+                        "inline-flex min-w-6 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-semibold text-foreground",
+                        responsiveLabels && "rail-label",
+                      )}
+                    >
+                      {count}
+                    </span>
+                  ) : null}
+                </NavLink>
+              </li>
+            )
+          })}
         </ul>
-
-        <div className="mt-auto">
-          <div
-              className={cn(
-              "mb-4 rounded-2xl bg-[linear-gradient(180deg,#fff7ef_0%,#f4edff_100%)] p-4",
-              responsiveLabels && "md:hidden lg:block",
-            )}
-          >
-            <Crown aria-hidden="true" className="size-4 text-amber-500" />
-            <p className="mt-3 text-sm leading-5 font-semibold">
-              Plan. Schedule.
-              <br />
-              Grow Faster.
-            </p>
-            <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-              Manage all your social content in one place.
-            </p>
-            <Button
-              asChild
-              className="mt-4 h-10 w-full rounded-full bg-primary px-3 text-primary-foreground hover:bg-[#6d28d9]"
-            >
-              <Link to="/compose" onClick={onNavigate}>
-                <Plus data-icon="inline-start" aria-hidden="true" />
-                Create Post
-              </Link>
-            </Button>
-          </div>
-
-          <div className={cn("flex items-center gap-1", responsiveLabels && "md:flex-col lg:flex-row")}>
-            <NavLink
-              to={settingsNavigation.to}
-              title={responsiveLabels ? settingsNavigation.label : undefined}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                cn(
-                  "flex h-11 min-w-0 flex-1 items-center gap-3 rounded-xl px-3 text-sm font-medium text-[#5d6178] hover:bg-[#f7f5fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  responsiveLabels && "md:justify-center md:px-0 lg:justify-start lg:px-3",
-                  isActive && "bg-[#f3eefe] text-primary",
-                )
-              }
-            >
-              <SettingsIcon aria-hidden="true" className="size-[18px]" />
-              <span className={cn(responsiveLabels && "md:sr-only lg:not-sr-only")}>
-                {settingsNavigation.label}
-              </span>
-            </NavLink>
-            <button
-              type="button"
-              aria-label="Appearance. Theme switching is not available yet."
-              title="Theme switching is not available yet."
-              className="inline-flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Moon aria-hidden="true" className="size-4" />
-            </button>
-          </div>
-        </div>
       </nav>
     </div>
   )

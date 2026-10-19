@@ -1,6 +1,6 @@
 import type { Platform, Post, PostStatus } from "@/features/posts/postsTypes"
 
-const STORAGE_KEY = "flintzy.posts.v1"
+export const POSTS_STORAGE_KEY = "flintzy.posts.v1"
 
 const platforms = new Set<Platform>(["facebook", "instagram", "x", "tiktok"])
 const statuses = new Set<PostStatus>(["scheduled", "published", "failed"])
@@ -178,7 +178,7 @@ export const storageService = {
     let raw: string | null
 
     try {
-      raw = storage.getItem(STORAGE_KEY)
+      raw = storage.getItem(POSTS_STORAGE_KEY)
     } catch {
       throw storageUnavailable()
     }
@@ -195,19 +195,9 @@ export const storageService = {
     const serialised = JSON.stringify(parsePosts(JSON.stringify(posts)))
 
     try {
-      storage.setItem(STORAGE_KEY, serialised)
+      storage.setItem(POSTS_STORAGE_KEY, serialised)
     } catch {
       throw saveFailed()
-    }
-  },
-
-  clearPosts() {
-    const storage = getLocalStorage()
-
-    try {
-      storage.removeItem(STORAGE_KEY)
-    } catch {
-      throw storageUnavailable()
     }
   },
 }

@@ -1,5 +1,5 @@
 import type { Platform } from "@/features/posts/postsTypes"
-import { platformLabels } from "@/lib/platforms"
+import { platformConfig } from "@/lib/platform"
 import { cn } from "@/lib/utils"
 
 function InstagramMark() {
@@ -53,10 +53,10 @@ const marks = {
 }
 
 const tones: Record<Platform, string> = {
-  instagram: "bg-[#fff1f6] text-[#d62976]",
-  facebook: "bg-[#eef4ff] text-[#1877f2]",
-  x: "bg-[#f3f3f5] text-[#111111]",
-  tiktok: "bg-[#f4f4f5] text-[#111111]",
+  instagram: "bg-instagram-soft text-instagram",
+  facebook: "bg-facebook-soft text-facebook",
+  x: "bg-mono-soft text-mono",
+  tiktok: "bg-mono-soft text-mono",
 }
 
 type PlatformIconProps = {
@@ -70,7 +70,7 @@ export function PlatformIcon({ platform, className, decorative = false }: Platfo
 
   return (
     <span
-      title={platformLabels[platform]}
+      title={platformConfig[platform].label}
       className={cn(
         "inline-flex size-7 items-center justify-center rounded-full",
         tones[platform],
@@ -78,7 +78,7 @@ export function PlatformIcon({ platform, className, decorative = false }: Platfo
       )}
     >
       <Mark />
-      {decorative ? null : <span className="sr-only">{platformLabels[platform]}</span>}
+      {decorative ? null : <span className="sr-only">{platformConfig[platform].label}</span>}
     </span>
   )
 }

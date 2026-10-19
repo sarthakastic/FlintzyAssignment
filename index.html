@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flintzy — Social Scheduler</title>
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      // Apply the saved theme before first paint; dark is the default.
+      try {
+        if (localStorage.getItem("flintzy.theme") !== "light") {
+          document.documentElement.classList.add("dark")
+        }
+      } catch {
+        document.documentElement.classList.add("dark")
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

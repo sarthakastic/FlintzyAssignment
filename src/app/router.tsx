@@ -1,13 +1,18 @@
 import { Navigate, Route, Routes, useLocation } from "react-router"
 import { AppShell } from "@/components/layout/AppShell"
-import { PlaceholderPage } from "@/components/PlaceholderPage"
 import { ComposePage } from "@/features/posts/ComposePage"
 import { QueuePage } from "@/features/queue/QueuePage"
 
-function RedirectToQueue() {
+function RedirectToQueue({ status }: { status?: "published" | "failed" }) {
   const location = useLocation()
+  const params = new URLSearchParams(location.search)
 
-  return <Navigate to={{ pathname: "/queue", search: location.search }} replace />
+  if (status) {
+    params.set("status", status)
+  }
+
+  const search = params.toString()
+  return <Navigate to={{ pathname: "/queue", search: search ? `?${search}` : "" }} replace />
 }
 
 export function AppRouter() {
@@ -17,20 +22,9 @@ export function AppRouter() {
         <Route index element={<RedirectToQueue />} />
         <Route path="queue" element={<QueuePage />} />
         <Route path="compose" element={<ComposePage />} />
-        <Route
-          path="calendar"
-          element={<PlaceholderPage title="Calendar" />}
-        />
-        <Route path="drafts" element={<PlaceholderPage title="Drafts" />} />
-        <Route
-          path="published"
-          element={<PlaceholderPage title="Published" />}
-        />
-        <Route path="failed" element={<PlaceholderPage title="Failed" />} />
-        <Route
-          path="settings"
-          element={<PlaceholderPage title="Settings" />}
-        />
+        <Route path="published" element={<RedirectToQueue status="published" />} />
+        <Route path="failed" element={<RedirectToQueue status="failed" />} />
+        <Route path="*" element={<RedirectToQueue />} />
       </Route>
     </Routes>
   )
