@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react"
 
-export type Theme = "dark" | "light"
+type Theme = "dark" | "light"
 
 // Kept in sync with the pre-paint script in index.html.
-export const THEME_STORAGE_KEY = "flintzy.theme"
+const THEME_STORAGE_KEY = "flintzy.theme"
 
 function currentTheme(): Theme {
   return document.documentElement.classList.contains("dark") ? "dark" : "light"

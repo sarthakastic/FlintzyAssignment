@@ -14,6 +14,14 @@ import {
   scheduleMinuteStep,
   toLocalDateTimeValue,
 } from "@/features/posts/scheduleTime";
+import {
+  addDays,
+  isSameDay,
+  monthGrid,
+  startOfDay,
+  startOfMonth,
+  weekdayNames,
+} from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 type SchedulePickerProps = {
@@ -25,28 +33,6 @@ type SchedulePickerProps = {
   describedBy?: string;
   disabled?: boolean;
 };
-
-const weekdayLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function addDays(date: Date, days: number) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
-}
-
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function isSameDay(left: Date, right: Date) {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  );
-}
 
 function atTime(day: Date, hours: number, minutes: number) {
   return new Date(
@@ -67,25 +53,6 @@ function uses12HourClock() {
   } catch {
     return true;
   }
-}
-
-function monthCells(month: Date) {
-  const leading = month.getDay();
-  const daysInMonth = new Date(
-    month.getFullYear(),
-    month.getMonth() + 1,
-    0
-  ).getDate();
-  const cells: Array<Date | null> = [
-    ...Array.from({ length: leading }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, index) => addDays(month, index)),
-  ];
-
-  while (cells.length % 7 !== 0) {
-    cells.push(null);
-  }
-
-  return cells;
 }
 
 function quickPicks(now: Date) {
@@ -271,7 +238,10 @@ export function SchedulePicker({
     }
   }
 
-  const cells = monthCells(viewMonth);
+  // Days outside the visible month render as empty cells.
+  const cells = monthGrid(viewMonth).map((day) =>
+    day.getMonth() === viewMonth.getMonth() ? day : null
+  );
   const focusVisible =
     focusDay.getMonth() === viewMonth.getMonth() &&
     focusDay.getFullYear() === viewMonth.getFullYear();
@@ -456,8 +426,8 @@ export function SchedulePicker({
                   className="mt-2 grid grid-cols-7 text-center text-[11px] font-medium text-muted-foreground"
                   aria-hidden="true"
                 >
-                  {weekdayLabels.map((label) => (
-                    <span key={label}>{label}</span>
+                  {weekdayNames.map((name) => (
+                    <span key={name}>{name.slice(0, 2)}</span>
                   ))}
                 </div>
                 <div

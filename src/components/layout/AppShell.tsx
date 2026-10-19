@@ -96,7 +96,7 @@ export function AppShell() {
 
   return (
     <div className="studio-canvas flex min-h-svh text-foreground">
-      <aside className="sidebar-frame sticky top-0 hidden h-svh shrink-0 border-r border-sidebar-border bg-card md:flex">
+      <aside className="sidebar-frame sticky top-0 hidden h-svh shrink-0 border-r border-sidebar-border bg-sidebar md:flex">
         <Sidebar responsiveLabels className="sidebar-rail w-full" />
       </aside>
 

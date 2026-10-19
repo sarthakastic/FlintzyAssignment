@@ -15,13 +15,12 @@ type RetrySnapshot = {
   errorMessage?: string
 }
 
-export interface PostsState {
+interface PostsState {
   items: Post[]
   loading: boolean
   initialized: boolean
   error: string | null
   creating: boolean
-  createError: string | null
   retryingIds: string[]
   retrySnapshots: Record<string, RetrySnapshot>
   // Latest retry failure message per post, so concurrent failures do not overwrite each other.
@@ -34,7 +33,6 @@ const initialState: PostsState = {
   initialized: false,
   error: null,
   creating: false,
-  createError: null,
   retryingIds: [],
   retrySnapshots: {},
   retryErrors: {},
@@ -76,19 +74,16 @@ const postsSlice = createSlice({
       })
       .addCase(createPost.pending, (state) => {
         state.creating = true
-        state.createError = null
       })
       .addCase(createPost.fulfilled, (state, action) => {
         state.creating = false
-        state.createError = null
 
         if (!state.items.some((post) => post.id === action.payload.id)) {
           state.items.push(action.payload)
         }
       })
-      .addCase(createPost.rejected, (state, action) => {
+      .addCase(createPost.rejected, (state) => {
         state.creating = false
-        state.createError = action.payload ?? "Unable to create the post. Please retry."
       })
       .addCase(retryPost.pending, (state, action) => {
         const id = action.meta.arg

@@ -11,14 +11,9 @@ export const selectPostsError = (state: RootState) => state.posts.error
 
 export const selectPostsCreating = (state: RootState) => state.posts.creating
 
-export const selectPostsCreateError = (state: RootState) => state.posts.createError
-
 export const selectRetryingIds = (state: RootState) => state.posts.retryingIds
 
 export const selectRetryErrors = (state: RootState) => state.posts.retryErrors
-
-export const selectPostById = (state: RootState, id: string) =>
-  state.posts.items.find((post) => post.id === id)
 
 function countByStatus(state: RootState, status: PostStatus) {
   return state.posts.items.filter((post) => post.status === status).length

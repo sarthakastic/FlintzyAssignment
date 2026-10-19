@@ -1,12 +1,30 @@
 import type { Post } from "@/features/posts/postsTypes"
+import { startOfDay, toDateKey } from "@/lib/dates"
 
-export type PostGroupData = {
+type PostGroupData = {
   key: string
   label: string
   detail: string
   /** True for local days before today. */
   past: boolean
   posts: Post[]
+}
+
+const utcTimestampPattern =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/
+
+/** ISO 8601 timestamp with an explicit offset, as stored for `scheduledAt`. */
+export function isUtcTimestamp(value: string) {
+  return utcTimestampPattern.test(value) && !Number.isNaN(Date.parse(value))
+}
+
+/** Copies a post so callers never share its `platforms` array. */
+export function copyPost(post: Post): Post {
+  return { ...post, platforms: [...post.platforms] }
+}
+
+export function copyPosts(posts: Post[]) {
+  return posts.map(copyPost)
 }
 
 export function isDue(post: Post, now = Date.now()) {
@@ -24,23 +42,13 @@ function parseTimestamp(timestamp: string) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-function startOfLocalDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
-}
-
 export function formatLocalDateKey(timestamp: string) {
   const date = parseTimestamp(timestamp)
 
-  if (!date) {
-    return "invalid"
-  }
-
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${date.getFullYear()}-${month}-${day}`
+  return date ? toDateKey(date) : "invalid"
 }
 
-export function getLocalDayLabel(timestamp: string, now = new Date()) {
+function getLocalDayLabel(timestamp: string, now = new Date()) {
   const date = parseTimestamp(timestamp)
 
   if (!date) {
@@ -48,7 +56,7 @@ export function getLocalDayLabel(timestamp: string, now = new Date()) {
   }
 
   const difference = Math.round(
-    (startOfLocalDay(date).getTime() - startOfLocalDay(now).getTime()) / 86_400_000,
+    (startOfDay(date).getTime() - startOfDay(now).getTime()) / 86_400_000,
   )
 
   if (difference === 0) {
@@ -141,4 +149,22 @@ export function groupPostsByLocalDay(posts: Post[], now = new Date()): PostGroup
   const upcoming = all.filter((group) => !group.past)
   const past = all.filter((group) => group.past).reverse()
   return [...upcoming, ...past]
+}
+
+/** Posts keyed by local calendar day (`YYYY-MM-DD`), each day sorted chronologically. */
+export function groupPostsByDateKey(posts: Post[]) {
+  const byDay = new Map<string, Post[]>()
+
+  for (const post of [...posts].sort(compareScheduledAt)) {
+    const key = formatLocalDateKey(post.scheduledAt)
+    const list = byDay.get(key)
+
+    if (list) {
+      list.push(post)
+    } else {
+      byDay.set(key, [post])
+    }
+  }
+
+  return byDay
 }

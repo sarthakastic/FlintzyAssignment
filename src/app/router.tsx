@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router"
 import { AppShell } from "@/components/layout/AppShell"
+import { CalendarPage } from "@/features/calendar/CalendarPage"
 import { ComposePage } from "@/features/posts/ComposePage"
 import { QueuePage } from "@/features/queue/QueuePage"
 
@@ -21,6 +22,7 @@ export function AppRouter() {
       <Route element={<AppShell />}>
         <Route index element={<RedirectToQueue />} />
         <Route path="queue" element={<QueuePage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="compose" element={<ComposePage />} />
         <Route path="published" element={<RedirectToQueue status="published" />} />
         <Route path="failed" element={<RedirectToQueue status="failed" />} />

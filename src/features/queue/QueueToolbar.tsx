@@ -2,6 +2,7 @@ import { ChevronDown, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import type { Platform, PostStatus } from "@/features/posts/postsTypes"
 import { platformConfig, supportedPlatforms } from "@/lib/platform"
+import { ViewSwitcher } from "@/features/queue/ViewSwitcher"
 import { cn } from "@/lib/utils"
 
 type Option = {
@@ -142,6 +143,7 @@ export function QueueToolbar({
           className="h-10 w-full rounded-full border-border bg-card pl-10 control-shadow"
         />
       </div>
+      <ViewSwitcher />
     </div>
   )
 }

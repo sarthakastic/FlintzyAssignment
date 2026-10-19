@@ -9,7 +9,7 @@ export type ComposerValues = {
   scheduledAt: string
 }
 
-export type ComposerFieldErrors = Partial<Record<keyof ComposerValues, string>>
+type ComposerFieldErrors = Partial<Record<keyof ComposerValues, string>>
 
 export function orderedSelectedPlatforms(platforms: Platform[]) {
   return supportedPlatforms.filter((platform) => platforms.includes(platform))

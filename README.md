@@ -7,8 +7,10 @@ A frontend-only scheduling dashboard for composing, scheduling and managing post
 ## Features
 
 - **Post queue grouped by day** — Today, Tomorrow, then upcoming dates in chronological order, followed by an "Earlier" section with past days (most recent first). Each card shows a content preview, optional image, platform icons, local scheduled time and status.
+- **Calendar view** (`/calendar`) — a month grid with each day's posts as colour-coded chips (dots on phones). Selecting a day lists its posts below, with retry for failed ones. The selected day is in the URL (`?date=2026-10-20`), arrow keys move between days, and "Schedule a post" opens the composer pre-set to that day. The same filters apply, and the List/Calendar switch keeps them.
 - **Search and filters** — search by content (case-insensitive, debounced), filter by platform and status. Filters live in the URL (`?platform=x&status=failed&search=launch`), so they survive refreshes, can be shared, and work with back/forward.
-- **Composer** (`/compose`) — text, multi-platform selection, optional image URL with preview, and a date-time picker.
+- **Composer** (`/compose`) — text, multi-platform selection, optional image URL with preview, and a date-time picker with quick picks (in 1 hour, tomorrow morning/evening, next Monday), a calendar and hour/minute selects. Past times can't be picked.
+- **Light and dark themes** — dark by default; the toggle in the top bar is remembered per browser.
 - **Live per-platform character counters** — X 280, Instagram 2,200, TikTok 2,200, Facebook 5,000. Scheduling is blocked while any selected platform is over its limit.
 - **Future-only scheduling in UTC** — the picked local time must be in the future; it is stored as a UTC ISO timestamp and always displayed in the browser's time zone.
 - **Optimistic retry for failed posts** — the card updates immediately, the mock API waits 1 second and fails 20% of the time; on failure the post rolls back to its original failed state and error message, and a dismissible error is shown.
@@ -57,7 +59,8 @@ src/
   components/   layout (shell, sidebar, top bar), queue UI, dashboard widgets, ui primitives
   features/
     posts/      types, slice, thunks, selectors, validation, time utils, composer
-    queue/      queue page, toolbar, URL-synced filter hook
+    queue/      queue page, toolbar, view switcher, URL-synced filter hooks
+    calendar/   month calendar view and date helpers
   lib/          platform config (character limits), navigation, helpers
   services/     mock API, localStorage service, seed data
 ```
@@ -70,5 +73,5 @@ The app is a static SPA. `vercel.json` (Vercel) and `public/_redirects` (Netlify
 
 - No real social integrations, authentication or server; data lives only in the current browser.
 - Character counts use JavaScript string length (UTF-16 units). Real platforms weigh URLs and some characters differently.
-- Posts cannot be edited or deleted after scheduling, and there are no drafts or a full calendar view.
+- Posts cannot be edited or deleted after scheduling, and there are no drafts.
 - No automated tests; the app was verified manually plus `npm run build` and `npm run lint`.

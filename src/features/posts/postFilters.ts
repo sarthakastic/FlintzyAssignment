@@ -1,20 +1,10 @@
-import type { Platform, Post, PostStatus } from "@/features/posts/postsTypes"
-import { supportedPlatforms } from "@/lib/platform"
+import { isPostStatus, type Platform, type Post, type PostStatus } from "@/features/posts/postsTypes"
+import { isPlatform } from "@/lib/platform"
 
-export type ActiveQueueFilters = {
+type ActiveQueueFilters = {
   platform: Platform | null
   status: PostStatus | null
   search: string
-}
-
-const statuses = new Set<PostStatus>(["scheduled", "published", "failed"])
-
-export function isPlatform(value: string): value is Platform {
-  return supportedPlatforms.includes(value as Platform)
-}
-
-export function isPostStatus(value: string): value is PostStatus {
-  return statuses.has(value as PostStatus)
 }
 
 export function readQueueFilters(params: URLSearchParams): ActiveQueueFilters {

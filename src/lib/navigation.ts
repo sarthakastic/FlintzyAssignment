@@ -1,6 +1,6 @@
-import { LayoutList, SquarePen, type LucideIcon } from "lucide-react"
+import { CalendarDays, LayoutList, SquarePen, type LucideIcon } from "lucide-react"
 
-export type NavItem = {
+type NavItem = {
   label: string
   to: string
   icon: LucideIcon
@@ -8,5 +8,6 @@ export type NavItem = {
 
 export const primaryNavigation: NavItem[] = [
   { label: "Queue", to: "/queue", icon: LayoutList },
+  { label: "Calendar", to: "/calendar", icon: CalendarDays },
   { label: "Create post", to: "/compose", icon: SquarePen },
 ]

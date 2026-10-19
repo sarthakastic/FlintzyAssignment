@@ -1,6 +1,6 @@
 import type { Platform } from "@/features/posts/postsTypes"
 
-export interface PlatformConfig {
+interface PlatformConfig {
   id: Platform
   label: string
   characterLimit: number
@@ -29,16 +29,13 @@ export const platformConfig = {
   },
 } as const satisfies Record<Platform, PlatformConfig>
 
-export const platformCharacterLimits: Record<Platform, number> = {
-  facebook: platformConfig.facebook.characterLimit,
-  instagram: platformConfig.instagram.characterLimit,
-  x: platformConfig.x.characterLimit,
-  tiktok: platformConfig.tiktok.characterLimit,
-}
-
 export const supportedPlatforms: Platform[] = [
   "instagram",
   "facebook",
   "x",
   "tiktok",
 ]
+
+export function isPlatform(value: unknown): value is Platform {
+  return supportedPlatforms.includes(value as Platform)
+}

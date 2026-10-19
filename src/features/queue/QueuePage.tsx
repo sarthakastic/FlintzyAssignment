@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useMemo, useState } from "react"
+import { Fragment, useMemo, useState } from "react"
 import { Plus } from "lucide-react"
 import { Link, useLocation } from "react-router"
-import { useAppDispatch, useAppSelector } from "@/app/hooks"
+import { useAppSelector } from "@/app/hooks"
 import { Button } from "@/components/ui/button"
 import { DateGroup } from "@/components/queue/DateGroup"
 import { PostCard } from "@/components/queue/PostCard"
@@ -9,6 +9,7 @@ import { PostQueueEmptyState } from "@/components/queue/PostQueueEmptyState"
 import { PostQueueErrorState } from "@/components/queue/PostQueueErrorState"
 import { PostQueueNoResults } from "@/components/queue/PostQueueNoResults"
 import { PostQueueSkeleton } from "@/components/queue/PostQueueSkeleton"
+import { RetryErrorList } from "@/components/queue/RetryErrorList"
 import { MiniCalendar } from "@/components/dashboard/MiniCalendar"
 import { PostOverview } from "@/components/dashboard/PostOverview"
 import { SupportedPlatforms } from "@/components/dashboard/SupportedPlatforms"
@@ -17,15 +18,13 @@ import {
   selectPostsError,
   selectPostsInitialized,
   selectPostsLoading,
-  selectRetryErrors,
-  selectRetryingIds,
 } from "@/features/posts/postsSelectors"
-import { dismissRetryError } from "@/features/posts/postsSlice"
-import { filterPosts } from "@/features/posts/postFilters"
-import { fetchPosts, resetPosts } from "@/features/posts/postsThunks"
 import { groupPostsByLocalDay } from "@/features/posts/postsUtils"
+import { usePostsRecovery } from "@/features/posts/usePostsRecovery"
 import { QueueToolbar } from "@/features/queue/QueueToolbar"
 import { useQueueFilters } from "@/features/queue/useQueueFilters"
+import { useVisiblePosts } from "@/features/queue/useVisiblePosts"
+import { useNow } from "@/lib/useNow"
 
 // Morning 5:00–11:59, afternoon 12:00–15:59, evening 16:00–4:59 (local time).
 function greeting(now: Date) {
@@ -42,25 +41,7 @@ function greeting(now: Date) {
   return "Good evening!"
 }
 
-function excerpt(content: string) {
-  const text = content.replace(/\s+/g, " ").trim()
-  return text.length > 60 ? `${text.slice(0, 57)}…` : text
-}
-
-// Re-renders once a minute so Today/Tomorrow labels roll over at midnight.
-function useNow(intervalMs = 60_000) {
-  const [now, setNow] = useState(() => new Date())
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), intervalMs)
-    return () => window.clearInterval(timer)
-  }, [intervalMs])
-
-  return now
-}
-
 export function QueuePage() {
-  const dispatch = useAppDispatch()
   const location = useLocation()
   const [hideScheduledNotice, setHideScheduledNotice] = useState(false)
   const postScheduled =
@@ -70,40 +51,12 @@ export function QueuePage() {
   const loading = useAppSelector(selectPostsLoading)
   const initialized = useAppSelector(selectPostsInitialized)
   const error = useAppSelector(selectPostsError)
-  const retryErrors = useAppSelector(selectRetryErrors)
-  const retryingIds = useAppSelector(selectRetryingIds)
   const filters = useQueueFilters()
   const now = useNow()
-  const visiblePosts = useMemo(
-    () =>
-      filterPosts(
-        posts,
-        {
-          platform: filters.platform,
-          status: filters.status,
-          search: filters.searchText,
-        },
-        retryingIds,
-      ),
-    [filters.platform, filters.searchText, filters.status, posts, retryingIds],
-  )
+  const visiblePosts = useVisiblePosts(filters)
   const groups = useMemo(() => groupPostsByLocalDay(visiblePosts, now), [visiblePosts, now])
   const firstPastKey = groups.find((group) => group.past)?.key
-  const failedRetries = Object.entries(retryErrors).map(([id, message]) => ({
-    id,
-    message,
-    post: posts.find((post) => post.id === id),
-  }))
-
-  function reloadPosts() {
-    void dispatch(fetchPosts({ reload: true }))
-  }
-
-  function resetDemoData() {
-    if (window.confirm("Replace all saved posts with the original demo data?")) {
-      void dispatch(resetPosts())
-    }
-  }
+  const { reloadPosts, resetDemoData } = usePostsRecovery()
 
   return (
     <div className="mx-auto grid max-w-[1180px] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -134,32 +87,7 @@ export function QueuePage() {
           </div>
         </div>
 
-        {failedRetries.length > 0 ? (
-          <ul role="alert" className="mt-6 flex flex-col gap-2">
-            {failedRetries.map(({ id, message, post }) => (
-              <li
-                key={id}
-                className="soft-card flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <p className="min-w-0 text-sm text-destructive">
-                  <span className="font-medium">{message}</span>
-                  {post ? (
-                    <span className="block truncate text-xs text-muted-foreground">
-                      “{excerpt(post.content)}”
-                    </span>
-                  ) : null}
-                </p>
-                <button
-                  type="button"
-                  className="shrink-0 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => dispatch(dismissRetryError(id))}
-                >
-                  Dismiss
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <RetryErrorList className="mt-6" />
 
         {postScheduled ? (
           <div

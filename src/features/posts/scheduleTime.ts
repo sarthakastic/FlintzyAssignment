@@ -23,6 +23,15 @@ export function defaultScheduleLocalValue(now = new Date()) {
   return toLocalDateTimeValue(roundUpToMinuteStep(new Date(now.getTime() + 60 * 60 * 1000)))
 }
 
+/**
+ * Default schedule for a specific day (e.g. picked in the calendar): 9:00 that
+ * day, or the usual "an hour from now" when 9:00 has already passed.
+ */
+export function defaultScheduleForDay(day: Date, now = new Date()) {
+  const morning = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 9, 0)
+  return morning > now ? toLocalDateTimeValue(morning) : defaultScheduleLocalValue(now)
+}
+
 export function parseLocalDateTime(value: string) {
   if (!localDateTimePattern.test(value)) {
     return null

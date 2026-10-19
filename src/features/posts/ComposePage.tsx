@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { ArrowLeft, ImageIcon, LoaderCircle } from "lucide-react"
-import { useLocation, useNavigate } from "react-router"
+import { useLocation, useNavigate, useSearchParams } from "react-router"
 import { useAppDispatch, useAppSelector } from "@/app/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,12 +17,14 @@ import {
 import { selectPostsCreating } from "@/features/posts/postsSelectors"
 import { createPost } from "@/features/posts/postsThunks"
 import {
+  defaultScheduleForDay,
   defaultScheduleLocalValue,
   formatScheduleLabel,
   isHttpUrl,
   localDateTimeToUtcIso,
   localTimeZoneName,
 } from "@/features/posts/scheduleTime"
+import { parseDateKey } from "@/lib/dates"
 import { platformConfig } from "@/lib/platform"
 import { cn } from "@/lib/utils"
 
@@ -57,12 +59,18 @@ export function ComposePage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const creating = useAppSelector(selectPostsCreating)
-  const [values, setValues] = useState<ComposerValues>({
-    content: "",
-    platforms: [],
-    mediaUrl: "",
-    scheduledAt: defaultScheduleLocalValue(),
+  const [values, setValues] = useState<ComposerValues>(() => {
+    // `?date=YYYY-MM-DD` comes from "Schedule a post" in the calendar.
+    const day = parseDateKey(searchParams.get("date"))
+
+    return {
+      content: "",
+      platforms: [],
+      mediaUrl: "",
+      scheduledAt: day ? defaultScheduleForDay(day) : defaultScheduleLocalValue(),
+    }
   })
   const [attempted, setAttempted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -118,6 +126,13 @@ export function ComposePage() {
     const result = await dispatch(createPost(input))
 
     if (createPost.fulfilled.match(result)) {
+      if (searchParams.has("date")) {
+        // Opened from the calendar: return to the day the post now lives on.
+        const day = values.scheduledAt.slice(0, 10)
+        navigate({ pathname: "/calendar", search: `?date=${day}` })
+        return
+      }
+
       navigate("/queue", { state: { postScheduled: true } })
       return
     }

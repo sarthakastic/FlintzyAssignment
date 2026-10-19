@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/queue/StatusBadge"
 import { selectRetryingIds } from "@/features/posts/postsSelectors"
 import { retryPost } from "@/features/posts/postsThunks"
 import { formatLocalTime } from "@/features/posts/postsUtils"
-import type { Post } from "@/types/post"
+import type { Post } from "@/features/posts/postsTypes"
 
 type PostCardProps = {
   post: Post

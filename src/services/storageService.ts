@@ -1,14 +1,10 @@
-import type { Platform, Post, PostStatus } from "@/features/posts/postsTypes"
+import { isPostStatus, type Platform, type Post, type PostStatus } from "@/features/posts/postsTypes"
+import { copyPosts, isUtcTimestamp } from "@/features/posts/postsUtils"
+import { isPlatform } from "@/lib/platform"
 
 export const POSTS_STORAGE_KEY = "flintzy.posts.v1"
 
-const platforms = new Set<Platform>(["facebook", "instagram", "x", "tiktok"])
-const statuses = new Set<PostStatus>(["scheduled", "published", "failed"])
-
-const utcTimestamp =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/
-
-export class StorageError extends Error {
+class StorageError extends Error {
   constructor(message: string) {
     super(message)
     this.name = "StorageError"
@@ -43,14 +39,6 @@ function getLocalStorage() {
   }
 }
 
-function isUtcTimestamp(value: string) {
-  if (!utcTimestamp.test(value)) {
-    return false
-  }
-
-  return !Number.isNaN(Date.parse(value))
-}
-
 function readPlatforms(value: unknown): Platform[] | null {
   if (!Array.isArray(value) || value.length === 0) {
     return null
@@ -59,15 +47,11 @@ function readPlatforms(value: unknown): Platform[] | null {
   const next: Platform[] = []
 
   for (const platform of value) {
-    if (typeof platform !== "string" || !platforms.has(platform as Platform)) {
+    if (!isPlatform(platform) || next.includes(platform)) {
       return null
     }
 
-    if (next.includes(platform as Platform)) {
-      return null
-    }
-
-    next.push(platform as Platform)
+    next.push(platform)
   }
 
   return next
@@ -97,7 +81,7 @@ function toPost(value: unknown): Post | null {
     return null
   }
 
-  if (typeof record.status !== "string" || !statuses.has(record.status as PostStatus)) {
+  if (!isPostStatus(record.status)) {
     return null
   }
 
@@ -163,13 +147,6 @@ function parsePosts(raw: string): Post[] {
   }
 
   return posts
-}
-
-function copyPosts(posts: Post[]): Post[] {
-  return posts.map((post) => ({
-    ...post,
-    platforms: [...post.platforms],
-  }))
 }
 
 export const storageService = {

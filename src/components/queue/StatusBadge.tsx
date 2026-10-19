@@ -1,4 +1,4 @@
-import type { PostStatus } from "@/types/post"
+import type { PostStatus } from "@/features/posts/postsTypes"
 import { cn } from "@/lib/utils"
 
 const styles: Record<PostStatus, string> = {

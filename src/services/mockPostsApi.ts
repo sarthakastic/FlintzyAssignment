@@ -1,29 +1,20 @@
 import type { CreatePostInput, Platform, Post } from "@/features/posts/postsTypes"
 import { characterLimitMessage, platformsOverLimit } from "@/features/posts/postValidation"
 import { isHttpUrl } from "@/features/posts/scheduleTime"
-import { isDue, retryOutcomeStatus } from "@/features/posts/postsUtils"
-import { supportedPlatforms } from "@/lib/platform"
+import {
+  copyPost,
+  copyPosts,
+  isDue,
+  isUtcTimestamp,
+  retryOutcomeStatus,
+} from "@/features/posts/postsUtils"
+import { isPlatform } from "@/lib/platform"
 import { createMockPosts } from "@/services/mockData"
 import { delay } from "@/services/delay"
 import { storageService } from "@/services/storageService"
 
-const supported = new Set<Platform>(supportedPlatforms)
 const requestDelayMs = 500
 const retryDelayMs = 1000
-
-const timestampPattern =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/
-
-function copyPost(post: Post): Post {
-  return {
-    ...post,
-    platforms: [...post.platforms],
-  }
-}
-
-function copyPosts(posts: Post[]) {
-  return posts.map(copyPost)
-}
 
 // Simulates the publishing worker: scheduled posts whose time has passed are
 // treated as published. Returns the posts that changed and persists them.
@@ -70,7 +61,7 @@ function assertCreateInput(input: CreatePostInput) {
   const platforms: Platform[] = []
 
   for (const platform of input.platforms) {
-    if (!supported.has(platform)) {
+    if (!isPlatform(platform)) {
       throw new Error("One or more platforms are not supported.")
     }
 
@@ -79,7 +70,7 @@ function assertCreateInput(input: CreatePostInput) {
     }
   }
 
-  if (!timestampPattern.test(input.scheduledAt) || Number.isNaN(Date.parse(input.scheduledAt))) {
+  if (!isUtcTimestamp(input.scheduledAt)) {
     throw new Error("The scheduled timestamp must be a valid UTC date.")
   }
 
@@ -115,16 +106,7 @@ function didRetryFail() {
 export const mockPostsApi = {
   async getPosts(): Promise<Post[]> {
     await delay(requestDelayMs)
-
-    try {
-      return readPersistedPosts()
-    } catch (error) {
-      if (error instanceof Error && error.message) {
-        throw error
-      }
-
-      throw new Error("Unable to load posts. Please try again.")
-    }
+    return readPersistedPosts()
   },
 
   async createPost(input: CreatePostInput): Promise<Post> {

@@ -2,6 +2,12 @@ export type Platform = "facebook" | "instagram" | "x" | "tiktok"
 
 export type PostStatus = "scheduled" | "published" | "failed"
 
+const postStatuses: readonly PostStatus[] = ["scheduled", "published", "failed"]
+
+export function isPostStatus(value: unknown): value is PostStatus {
+  return postStatuses.includes(value as PostStatus)
+}
+
 export interface Post {
   id: string
   content: string

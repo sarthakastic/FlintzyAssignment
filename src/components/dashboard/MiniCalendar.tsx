@@ -1,33 +1,10 @@
 import { useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Link } from "react-router"
 import { useAppSelector } from "@/app/hooks"
 import { selectAllPosts } from "@/features/posts/postsSelectors"
-import { formatLocalDateKey } from "@/features/posts/postsUtils"
-
-const weekdays = ["S", "M", "T", "W", "T", "F", "S"]
-
-function buildCells(year: number, month: number) {
-  const firstWeekday = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const cells: Array<number | null> = [
-    ...Array.from({ length: firstWeekday }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
-  ]
-
-  while (cells.length % 7 !== 0) {
-    cells.push(null)
-  }
-
-  return cells
-}
-
-function isSameDay(left: Date, right: Date) {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  )
-}
+import { groupPostsByDateKey } from "@/features/posts/postsUtils"
+import { isSameDay, monthGrid, toDateKey, weekdayNames } from "@/lib/dates"
 
 export function MiniCalendar() {
   const today = useMemo(() => new Date(), [])
@@ -35,15 +12,8 @@ export function MiniCalendar() {
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   )
   const posts = useAppSelector(selectAllPosts)
-  const postsPerDay = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const post of posts) {
-      const key = formatLocalDateKey(post.scheduledAt)
-      counts.set(key, (counts.get(key) ?? 0) + 1)
-    }
-    return counts
-  }, [posts])
-  const cells = buildCells(visible.getFullYear(), visible.getMonth())
+  const postsByDay = useMemo(() => groupPostsByDateKey(posts), [posts])
+  const days = monthGrid(visible)
   const title = visible.toLocaleDateString(undefined, {
     month: "long",
     year: "numeric",
@@ -77,29 +47,31 @@ export function MiniCalendar() {
         </div>
       </div>
       <div className="grid grid-cols-7 gap-y-1 text-center text-[11px] font-medium text-muted-foreground">
-        {weekdays.map((day, index) => (
-          <span key={`${day}-${index}`}>{day}</span>
+        {weekdayNames.map((name) => (
+          <span key={name}>{name.charAt(0)}</span>
         ))}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-y-1 text-center text-xs">
-        {cells.map((day, index) => {
-          if (!day) {
-            return <span key={`empty-${index}`} />
+        {days.map((date) => {
+          const dateKey = toDateKey(date)
+
+          if (date.getMonth() !== visible.getMonth()) {
+            return <span key={dateKey} />
           }
 
-          const date = new Date(visible.getFullYear(), visible.getMonth(), day)
+          const day = date.getDate()
           const isToday = isSameDay(date, today)
-          const count = postsPerDay.get(formatLocalDateKey(date.toISOString())) ?? 0
+          const count = postsByDay.get(dateKey)?.length ?? 0
           const label = `${date.toLocaleDateString()}${count > 0 ? `, ${count} ${count === 1 ? "post" : "posts"}` : ""}`
 
           return (
-            <span
+            <Link
               key={day}
-              role="img"
-              aria-label={label}
+              to={{ pathname: "/calendar", search: `?date=${dateKey}` }}
+              aria-label={`${label}. Open in calendar`}
               aria-current={isToday ? "date" : undefined}
-              className={`relative mx-auto inline-flex size-7 items-center justify-center rounded-full ${
-                isToday ? "bg-primary font-semibold text-primary-foreground" : "text-foreground"
+              className={`relative mx-auto inline-flex size-7 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                isToday ? "bg-primary font-semibold text-primary-foreground" : "text-foreground hover:bg-muted"
               }`}
             >
               {day}
@@ -111,7 +83,7 @@ export function MiniCalendar() {
                   }`}
                 />
               ) : null}
-            </span>
+            </Link>
           )
         })}
       </div>
