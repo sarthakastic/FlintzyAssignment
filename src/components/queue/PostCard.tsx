@@ -1,24 +1,24 @@
-import { useState } from "react"
-import { Clock, ImageIcon, LoaderCircle, RotateCw } from "lucide-react"
-import { useAppDispatch, useAppSelector } from "@/app/hooks"
-import { Button } from "@/components/ui/button"
-import { PlatformIcon } from "@/components/queue/PlatformIcon"
-import { StatusBadge } from "@/components/queue/StatusBadge"
-import { selectRetryingIds } from "@/features/posts/postsSelectors"
-import { retryPost } from "@/features/posts/postsThunks"
-import { formatLocalTime } from "@/features/posts/postsUtils"
-import type { Post } from "@/features/posts/postsTypes"
+import { useState } from "react";
+import { Clock, ImageIcon, LoaderCircle, RotateCw } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/app/hooks";
+import { Button } from "@/components/ui/button";
+import { PlatformIcon } from "@/components/queue/PlatformIcon";
+import { StatusBadge } from "@/components/queue/StatusBadge";
+import { selectRetryingIds } from "@/features/posts/postsSelectors";
+import { duplicatePost, retryPost } from "@/features/posts/postsThunks";
+import { formatLocalTime } from "@/features/posts/postsUtils";
+import type { Post } from "@/features/posts/postsTypes";
 
 type PostCardProps = {
-  post: Post
-}
+  post: Post;
+};
 
 function MediaPreview({ url }: { url?: string }) {
-  const [failed, setFailed] = useState(false)
-  const showImage = Boolean(url) && !failed
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(url) && !failed;
 
   if (!url) {
-    return null
+    return null;
   }
 
   if (!showImage) {
@@ -27,7 +27,7 @@ function MediaPreview({ url }: { url?: string }) {
         <ImageIcon aria-hidden="true" className="size-4" />
         <span className="sr-only">Image unavailable</span>
       </span>
-    )
+    );
   }
 
   return (
@@ -37,20 +37,24 @@ function MediaPreview({ url }: { url?: string }) {
       className="h-16 w-full rounded-xl object-cover sm:h-[58px] sm:w-20"
       onError={() => setFailed(true)}
     />
-  )
+  );
 }
 
 export function PostCard({ post }: PostCardProps) {
-  const dispatch = useAppDispatch()
-  const retrying = useAppSelector(selectRetryingIds).includes(post.id)
-  const showRetry = post.status === "failed" || retrying
+  const dispatch = useAppDispatch();
+  const retrying = useAppSelector(selectRetryingIds).includes(post.id);
+  const showRetry = post.status === "failed" || retrying;
 
   function onRetry() {
     if (retrying) {
-      return
+      return;
     }
 
-    void dispatch(retryPost(post.id))
+    void dispatch(retryPost(post.id));
+  }
+
+  function onDuplicate() {
+    void dispatch(duplicatePost(post.id));
   }
 
   return (
@@ -61,7 +65,9 @@ export function PostCard({ post }: PostCardProps) {
           {post.content}
         </p>
         {post.status === "failed" && post.errorMessage ? (
-          <p className="mt-1 line-clamp-2 text-xs leading-4 text-destructive">{post.errorMessage}</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-4 text-destructive">
+            {post.errorMessage}
+          </p>
         ) : null}
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 lg:max-w-[560px] lg:flex-nowrap lg:justify-end">
@@ -70,15 +76,37 @@ export function PostCard({ post }: PostCardProps) {
             <PlatformIcon key={platform} platform={platform} />
           ))}
         </div>
-        <span aria-hidden="true" className="hidden h-8 w-px bg-border lg:block" />
+        <span
+          aria-hidden="true"
+          className="hidden h-8 w-px bg-border lg:block"
+        />
         <div className="min-w-[92px]">
           <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-            <Clock aria-hidden="true" className="size-3.5 text-muted-foreground" />
-            <time dateTime={post.scheduledAt}>{formatLocalTime(post.scheduledAt)}</time>
+            <Clock
+              aria-hidden="true"
+              className="size-3.5 text-muted-foreground"
+            />
+            <time dateTime={post.scheduledAt}>
+              {formatLocalTime(post.scheduledAt)}
+            </time>
           </p>
-          <p className="mt-0.5 pl-5 text-[11px] text-muted-foreground">Local time</p>
+          <p className="mt-0.5 pl-5 text-[11px] text-muted-foreground">
+            Local time
+          </p>
         </div>
         <StatusBadge status={post.status} />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-full"
+          disabled={retrying}
+          aria-busy={retrying}
+          onClick={onDuplicate}
+        >
+          Duplicate
+        </Button>
+
         {showRetry ? (
           <Button
             type="button"
@@ -99,5 +127,5 @@ export function PostCard({ post }: PostCardProps) {
         ) : null}
       </div>
     </article>
-  )
+  );
 }

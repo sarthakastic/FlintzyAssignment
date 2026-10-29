@@ -1,103 +1,115 @@
-import { isPostStatus, type Platform, type Post, type PostStatus } from "@/features/posts/postsTypes"
-import { copyPosts, isUtcTimestamp } from "@/features/posts/postsUtils"
-import { isPlatform } from "@/lib/platform"
+import {
+  isPostStatus,
+  type Platform,
+  type Post,
+  type PostStatus,
+} from "@/features/posts/postsTypes";
+import { copyPosts, isUtcTimestamp } from "@/features/posts/postsUtils";
+import { isPlatform } from "@/lib/platform";
 
-export const POSTS_STORAGE_KEY = "flintzy.posts.v1"
+export const POSTS_STORAGE_KEY = "flintzy.posts.v1";
 
 class StorageError extends Error {
   constructor(message: string) {
-    super(message)
-    this.name = "StorageError"
+    super(message);
+    this.name = "StorageError";
   }
 }
 
 function storageUnavailable() {
-  return new StorageError("Browser storage is unavailable.")
+  return new StorageError("Browser storage is unavailable.");
 }
 
 function invalidStoredPosts() {
-  return new StorageError("Stored post data is invalid.")
+  return new StorageError("Stored post data is invalid.");
 }
 
 function saveFailed() {
-  return new StorageError("Unable to save changes to browser storage.")
+  return new StorageError("Unable to save changes to browser storage.");
 }
 
 function getLocalStorage() {
   try {
     if (typeof localStorage === "undefined") {
-      throw storageUnavailable()
+      throw storageUnavailable();
     }
 
-    return localStorage
+    return localStorage;
   } catch (error) {
     if (error instanceof StorageError) {
-      throw error
+      throw error;
     }
 
-    throw storageUnavailable()
+    throw storageUnavailable();
   }
 }
 
 function readPlatforms(value: unknown): Platform[] | null {
   if (!Array.isArray(value) || value.length === 0) {
-    return null
+    return null;
   }
 
-  const next: Platform[] = []
+  const next: Platform[] = [];
 
   for (const platform of value) {
     if (!isPlatform(platform) || next.includes(platform)) {
-      return null
+      return null;
     }
 
-    next.push(platform)
+    next.push(platform);
   }
 
-  return next
+  return next;
 }
 
 function toPost(value: unknown): Post | null {
   if (!value || typeof value !== "object") {
-    return null
+    return null;
   }
 
-  const record = value as Record<string, unknown>
-  const postPlatforms = readPlatforms(record.platforms)
+  const record = value as Record<string, unknown>;
+  const postPlatforms = readPlatforms(record.platforms);
 
   if (typeof record.id !== "string" || record.id.trim() === "") {
-    return null
+    return null;
   }
 
   if (typeof record.content !== "string" || record.content.trim() === "") {
-    return null
+    return null;
   }
 
   if (!postPlatforms) {
-    return null
+    return null;
   }
 
-  if (typeof record.scheduledAt !== "string" || !isUtcTimestamp(record.scheduledAt)) {
-    return null
+  if (
+    typeof record.scheduledAt !== "string" ||
+    !isUtcTimestamp(record.scheduledAt)
+  ) {
+    return null;
   }
 
   if (!isPostStatus(record.status)) {
-    return null
+    return null;
   }
 
   if (record.mediaUrl !== undefined && typeof record.mediaUrl !== "string") {
-    return null
+    return null;
   }
 
-  if (record.errorMessage !== undefined && typeof record.errorMessage !== "string") {
-    return null
+  if (
+    record.errorMessage !== undefined &&
+    typeof record.errorMessage !== "string"
+  ) {
+    return null;
   }
 
   if (
     record.status === "failed" &&
-    (typeof record.errorMessage !== "string" || record.errorMessage.trim() === "")
+    (typeof record.errorMessage !== "string" ||
+      record.errorMessage.trim() === "")
   ) {
-    return null
+    return null;
   }
 
   const post: Post = {
@@ -106,75 +118,75 @@ function toPost(value: unknown): Post | null {
     platforms: postPlatforms,
     scheduledAt: record.scheduledAt,
     status: record.status as PostStatus,
-  }
+  };
 
   if (typeof record.mediaUrl === "string" && record.mediaUrl.trim()) {
-    post.mediaUrl = record.mediaUrl
+    post.mediaUrl = record.mediaUrl;
   }
 
   if (typeof record.errorMessage === "string" && record.errorMessage.trim()) {
-    post.errorMessage = record.errorMessage
+    post.errorMessage = record.errorMessage;
   }
 
-  return post
+  return post;
 }
 
 function parsePosts(raw: string): Post[] {
-  let parsed: unknown
+  let parsed: unknown;
 
   try {
-    parsed = JSON.parse(raw)
+    parsed = JSON.parse(raw);
   } catch {
-    throw invalidStoredPosts()
+    throw invalidStoredPosts();
   }
-
+  console.log(parsed, "parsed");
   if (!Array.isArray(parsed)) {
-    throw invalidStoredPosts()
+    throw invalidStoredPosts();
   }
 
-  const posts: Post[] = []
-  const ids = new Set<string>()
+  const posts: Post[] = [];
+  const ids = new Set<string>();
 
   for (const entry of parsed) {
-    const post = toPost(entry)
+    const post = toPost(entry);
 
     if (!post || ids.has(post.id)) {
-      throw invalidStoredPosts()
+      throw invalidStoredPosts();
     }
 
-    ids.add(post.id)
-    posts.push(post)
+    ids.add(post.id);
+    posts.push(post);
   }
 
-  return posts
+  return posts;
 }
 
 export const storageService = {
   getPosts(): Post[] | null {
-    const storage = getLocalStorage()
-    let raw: string | null
+    const storage = getLocalStorage();
+    let raw: string | null;
 
     try {
-      raw = storage.getItem(POSTS_STORAGE_KEY)
+      raw = storage.getItem(POSTS_STORAGE_KEY);
     } catch {
-      throw storageUnavailable()
+      throw storageUnavailable();
     }
 
     if (raw === null) {
-      return null
+      return null;
     }
 
-    return copyPosts(parsePosts(raw))
+    return copyPosts(parsePosts(raw));
   },
 
   savePosts(posts: Post[]) {
-    const storage = getLocalStorage()
-    const serialised = JSON.stringify(parsePosts(JSON.stringify(posts)))
+    const storage = getLocalStorage();
+    const serialised = JSON.stringify(parsePosts(JSON.stringify(posts)));
 
     try {
-      storage.setItem(POSTS_STORAGE_KEY, serialised)
+      storage.setItem(POSTS_STORAGE_KEY, serialised);
     } catch {
-      throw saveFailed()
+      throw saveFailed();
     }
   },
-}
+};

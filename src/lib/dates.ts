@@ -24,6 +24,11 @@ export function addMonths(date: Date, months: number) {
   return new Date(target.getFullYear(), target.getMonth(), Math.min(date.getDate(), lastDay))
 }
 
+/** The given day at a specific local time. */
+export function atTime(day: Date, hours: number, minutes: number) {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours, minutes)
+}
+
 export function isSameDay(left: Date, right: Date) {
   return (
     left.getFullYear() === right.getFullYear() &&

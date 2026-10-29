@@ -1,15 +1,15 @@
-import { createAsyncThunk } from "@reduxjs/toolkit"
-import type { CreatePostInput, Post } from "@/features/posts/postsTypes"
-import { toErrorMessage } from "@/lib/errors"
-import { mockPostsApi } from "@/services/mockPostsApi"
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import type { CreatePostInput, Post } from "@/features/posts/postsTypes";
+import { toErrorMessage } from "@/lib/errors";
+import { mockPostsApi } from "@/services/mockPostsApi";
 
 type PostsThunkState = {
   posts: {
-    loading: boolean
-    initialized: boolean
-    retryingIds: string[]
-  }
-}
+    loading: boolean;
+    initialized: boolean;
+    retryingIds: string[];
+  };
+};
 
 export const fetchPosts = createAsyncThunk<
   Post[],
@@ -19,29 +19,29 @@ export const fetchPosts = createAsyncThunk<
   "posts/fetchPosts",
   async (_, { rejectWithValue }) => {
     try {
-      return await mockPostsApi.getPosts()
+      return await mockPostsApi.getPosts();
     } catch (error) {
       return rejectWithValue(
-        toErrorMessage(error, "Unable to load posts. Please try again."),
-      )
+        toErrorMessage(error, "Unable to load posts. Please try again.")
+      );
     }
   },
   {
     condition: (arg, { getState }) => {
-      const { posts } = getState()
+      const { posts } = getState();
 
       if (posts.loading) {
-        return false
+        return false;
       }
 
       if (typeof arg === "object" && arg?.reload) {
-        return true
+        return true;
       }
 
-      return !posts.initialized
+      return !posts.initialized;
     },
-  },
-)
+  }
+);
 
 export const createPost = createAsyncThunk<
   Post,
@@ -49,15 +49,30 @@ export const createPost = createAsyncThunk<
   { rejectValue: string }
 >("posts/createPost", async (input, { rejectWithValue }) => {
   try {
-    return await mockPostsApi.createPost(input)
+    return await mockPostsApi.createPost(input);
   } catch (error) {
     return rejectWithValue(
-      toErrorMessage(error, "Unable to create the post. Please retry."),
-    )
+      toErrorMessage(error, "Unable to create the post. Please retry.")
+    );
   }
-})
+});
 
-const retryFallback = "Retry failed. Your post is still marked as failed. Please try again."
+export const duplicatePost = createAsyncThunk<
+  Post,
+  string,
+  { rejectValue: string }
+>("posts/duplicatePost", async (id, { rejectWithValue }) => {
+  try {
+    return await mockPostsApi.duplicatePost(id);
+  } catch (error) {
+    return rejectWithValue(
+      toErrorMessage(error, "Unable to duplicate the post. Please retry.")
+    );
+  }
+});
+
+const retryFallback =
+  "Retry failed. Your post is still marked as failed. Please try again.";
 
 export const retryPost = createAsyncThunk<
   Post,
@@ -67,27 +82,23 @@ export const retryPost = createAsyncThunk<
   "posts/retryPost",
   async (id, { rejectWithValue }) => {
     try {
-      return await mockPostsApi.retryPost(id)
+      return await mockPostsApi.retryPost(id);
     } catch (error) {
-      return rejectWithValue(toErrorMessage(error, retryFallback))
+      return rejectWithValue(toErrorMessage(error, retryFallback));
     }
   },
   {
     condition: (id, { getState }) => !getState().posts.retryingIds.includes(id),
-  },
-)
+  }
+);
 
 export const publishDuePosts = createAsyncThunk<
   Post[],
   void,
   { state: PostsThunkState }
->(
-  "posts/publishDuePosts",
-  () => mockPostsApi.publishDuePosts(),
-  {
-    condition: (_, { getState }) => getState().posts.initialized,
-  },
-)
+>("posts/publishDuePosts", () => mockPostsApi.publishDuePosts(), {
+  condition: (_, { getState }) => getState().posts.initialized,
+});
 
 export const resetPosts = createAsyncThunk<
   Post[],
@@ -95,10 +106,10 @@ export const resetPosts = createAsyncThunk<
   { rejectValue: string }
 >("posts/resetPosts", async (_, { rejectWithValue }) => {
   try {
-    return await mockPostsApi.resetPosts()
+    return await mockPostsApi.resetPosts();
   } catch (error) {
     return rejectWithValue(
-      toErrorMessage(error, "Unable to reset the demo data. Please try again."),
-    )
+      toErrorMessage(error, "Unable to reset the demo data. Please try again.")
+    );
   }
-})
+});

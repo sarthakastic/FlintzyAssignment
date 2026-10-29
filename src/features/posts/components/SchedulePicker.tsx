@@ -16,6 +16,7 @@ import {
 } from "@/features/posts/scheduleTime";
 import {
   addDays,
+  atTime,
   isSameDay,
   monthGrid,
   startOfDay,
@@ -33,16 +34,6 @@ type SchedulePickerProps = {
   describedBy?: string;
   disabled?: boolean;
 };
-
-function atTime(day: Date, hours: number, minutes: number) {
-  return new Date(
-    day.getFullYear(),
-    day.getMonth(),
-    day.getDate(),
-    hours,
-    minutes
-  );
-}
 
 function uses12HourClock() {
   try {

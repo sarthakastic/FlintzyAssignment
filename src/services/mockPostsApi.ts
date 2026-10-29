@@ -1,189 +1,241 @@
-import type { CreatePostInput, Platform, Post } from "@/features/posts/postsTypes"
-import { characterLimitMessage, platformsOverLimit } from "@/features/posts/postValidation"
-import { isHttpUrl } from "@/features/posts/scheduleTime"
+import type {
+  CreatePostInput,
+  Platform,
+  Post,
+} from "@/features/posts/postsTypes";
+import {
+  characterLimitMessage,
+  platformsOverLimit,
+} from "@/features/posts/postValidation";
+import { isHttpUrl } from "@/features/posts/scheduleTime";
 import {
   copyPost,
   copyPosts,
   isDue,
   isUtcTimestamp,
   retryOutcomeStatus,
-} from "@/features/posts/postsUtils"
-import { isPlatform } from "@/lib/platform"
-import { createMockPosts } from "@/services/mockData"
-import { delay } from "@/services/delay"
-import { storageService } from "@/services/storageService"
+} from "@/features/posts/postsUtils";
+import { isPlatform } from "@/lib/platform";
+import { createMockPosts } from "@/services/mockData";
+import { delay } from "@/services/delay";
+import { storageService } from "@/services/storageService";
+import { addDays, atTime, startOfDay } from "@/lib/dates";
 
-const requestDelayMs = 500
-const retryDelayMs = 1000
+const requestDelayMs = 500;
+const retryDelayMs = 1000;
 
 // Simulates the publishing worker: scheduled posts whose time has passed are
 // treated as published. Returns the posts that changed and persists them.
 function publishDue(posts: Post[], now = Date.now()) {
-  const published: Post[] = []
+  const published: Post[] = [];
   const next = posts.map((post) => {
     if (post.status !== "scheduled" || !isDue(post, now)) {
-      return post
+      return post;
     }
 
-    const updated: Post = { ...post, platforms: [...post.platforms], status: "published" }
-    published.push(updated)
-    return updated
-  })
+    const updated: Post = {
+      ...post,
+      platforms: [...post.platforms],
+      status: "published",
+    };
+    published.push(updated);
+    return updated;
+  });
 
   if (published.length > 0) {
-    storageService.savePosts(next)
+    storageService.savePosts(next);
   }
 
-  return { posts: next, published }
+  return { posts: next, published };
 }
 
 function readPersistedPosts() {
-  const stored = storageService.getPosts()
+  const stored = storageService.getPosts();
 
   if (stored !== null) {
-    return publishDue(stored).posts
+    return publishDue(stored).posts;
   }
 
-  const seeded = createMockPosts()
-  storageService.savePosts(seeded)
-  return copyPosts(seeded)
+  const seeded = createMockPosts();
+  storageService.savePosts(seeded);
+  return copyPosts(seeded);
 }
 
 function assertCreateInput(input: CreatePostInput) {
   if (input.content.trim() === "") {
-    throw new Error("Post content cannot be empty.")
+    throw new Error("Post content cannot be empty.");
   }
 
   if (input.platforms.length === 0) {
-    throw new Error("Select at least one platform.")
+    throw new Error("Select at least one platform.");
   }
 
-  const platforms: Platform[] = []
+  const platforms: Platform[] = [];
 
   for (const platform of input.platforms) {
     if (!isPlatform(platform)) {
-      throw new Error("One or more platforms are not supported.")
+      throw new Error("One or more platforms are not supported.");
     }
 
     if (!platforms.includes(platform)) {
-      platforms.push(platform)
+      platforms.push(platform);
     }
   }
 
   if (!isUtcTimestamp(input.scheduledAt)) {
-    throw new Error("The scheduled timestamp must be a valid UTC date.")
+    throw new Error("The scheduled timestamp must be a valid UTC date.");
   }
 
   if (Date.parse(input.scheduledAt) <= Date.now()) {
-    throw new Error("The scheduled time must be in the future.")
+    throw new Error("The scheduled time must be in the future.");
   }
 
-  const overLimit = platformsOverLimit(input.content, platforms)
+  const overLimit = platformsOverLimit(input.content, platforms);
   if (overLimit.length > 0) {
-    throw new Error(characterLimitMessage(overLimit))
+    throw new Error(characterLimitMessage(overLimit));
   }
 
-  const mediaUrl = input.mediaUrl?.trim()
+  const mediaUrl = input.mediaUrl?.trim();
   if (mediaUrl && !isHttpUrl(mediaUrl)) {
-    throw new Error("The image URL must be a valid http or https URL.")
+    throw new Error("The image URL must be a valid http or https URL.");
   }
 
-  return platforms
+  return platforms;
 }
 
 function createId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID()
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
   }
 
-  throw new Error("Unable to create the post. Please retry.")
+  throw new Error("Unable to create the post. Please retry.");
 }
 
 function didRetryFail() {
-  return Math.random() < 0.2
+  return Math.random() < 0.2;
 }
 
 export const mockPostsApi = {
   async getPosts(): Promise<Post[]> {
-    await delay(requestDelayMs)
-    return readPersistedPosts()
+    await delay(requestDelayMs);
+    return readPersistedPosts();
   },
 
   async createPost(input: CreatePostInput): Promise<Post> {
-    assertCreateInput(input)
-    await delay(requestDelayMs)
-    const platforms = assertCreateInput(input)
+    assertCreateInput(input);
+    await delay(requestDelayMs);
+    const platforms = assertCreateInput(input);
 
-    const posts = readPersistedPosts()
+    const posts = readPersistedPosts();
     const created: Post = {
       id: createId(),
       content: input.content,
       platforms,
       scheduledAt: input.scheduledAt,
       status: "scheduled",
-    }
+    };
 
     if (input.mediaUrl?.trim()) {
-      created.mediaUrl = input.mediaUrl.trim()
+      created.mediaUrl = input.mediaUrl.trim();
     }
 
-    storageService.savePosts([...posts, created])
-    return copyPost(created)
+    storageService.savePosts([...posts, created]);
+    return copyPost(created);
+  },
+
+  async duplicatePost(id: string): Promise<Post> {
+    await delay(requestDelayMs);
+
+    const posts = readPersistedPosts();
+    const currentPost = posts.find((post) => post.id === id);
+
+    if (!currentPost) {
+      throw new Error("This post no longer exists.");
+    }
+
+    // Same time of day as the original post, but on tomorrow's date.
+    const originalTime = new Date(currentPost.scheduledAt);
+    const tomorrow = addDays(startOfDay(new Date()), 1);
+    const scheduledAt = atTime(
+      tomorrow,
+      originalTime.getHours(),
+      originalTime.getMinutes()
+    );
+
+    const duplicate: Post = {
+      id: createId(),
+      content: currentPost.content,
+      platforms: [...currentPost.platforms],
+      scheduledAt: scheduledAt.toISOString(),
+      status: "scheduled",
+    };
+
+    if (currentPost.mediaUrl) {
+      duplicate.mediaUrl = currentPost.mediaUrl;
+    }
+
+    storageService.savePosts([...posts, duplicate]);
+    return copyPost(duplicate);
   },
 
   async retryPost(id: string): Promise<Post> {
-    const posts = readPersistedPosts()
-    const existing = posts.find((post) => post.id === id)
+    const posts = readPersistedPosts();
+    const existing = posts.find((post) => post.id === id);
 
     if (!existing) {
-      throw new Error("This post is no longer eligible for retry.")
+      throw new Error("This post is no longer eligible for retry.");
     }
 
     if (existing.status !== "failed") {
-      throw new Error("This post is no longer eligible for retry.")
+      throw new Error("This post is no longer eligible for retry.");
     }
 
-    await delay(retryDelayMs)
+    await delay(retryDelayMs);
 
     if (didRetryFail()) {
-      throw new Error("Retry failed. Your post is still marked as failed. Please try again.")
+      throw new Error(
+        "Retry failed. Your post is still marked as failed. Please try again."
+      );
     }
 
-    const latest = readPersistedPosts()
-    const current = latest.find((post) => post.id === id)
+    const latest = readPersistedPosts();
+    const current = latest.find((post) => post.id === id);
 
     if (!current) {
-      throw new Error("This post is no longer eligible for retry.")
+      throw new Error("This post is no longer eligible for retry.");
     }
 
     if (current.status !== "failed") {
-      throw new Error("This post is no longer eligible for retry.")
+      throw new Error("This post is no longer eligible for retry.");
     }
 
     const updated: Post = {
       ...current,
       platforms: [...current.platforms],
       status: retryOutcomeStatus(current),
-    }
+    };
 
-    delete updated.errorMessage
+    delete updated.errorMessage;
 
     storageService.savePosts(
-      latest.map((post) => (post.id === id ? updated : post)),
-    )
+      latest.map((post) => (post.id === id ? updated : post))
+    );
 
-    return copyPost(updated)
+    return copyPost(updated);
   },
 
   async publishDuePosts(): Promise<Post[]> {
-    const stored = storageService.getPosts()
-    return stored === null ? [] : copyPosts(publishDue(stored).published)
+    const stored = storageService.getPosts();
+    return stored === null ? [] : copyPosts(publishDue(stored).published);
   },
 
   async resetPosts(): Promise<Post[]> {
-    await delay(requestDelayMs)
-    const seeded = createMockPosts()
-    storageService.savePosts(seeded)
-    return copyPosts(seeded)
+    await delay(requestDelayMs);
+    const seeded = createMockPosts();
+    storageService.savePosts(seeded);
+    return copyPosts(seeded);
   },
-}
+};
